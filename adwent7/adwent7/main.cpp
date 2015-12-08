@@ -10,7 +10,6 @@ using namespace std;
 struct Wire
 {
 	string name = "Z";
-	//unsigned int value;
 	uint16_t value;
 };
 
@@ -100,7 +99,6 @@ int main()
 		todo.close();
 		notdone.close();
 		CopyFile("notdone.txt", "todo.txt");
-		//_getch();
 	}
 
 
