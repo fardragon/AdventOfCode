@@ -11,7 +11,8 @@ using namespace std;
 
 void Cut(string input, string& location1, string& location2);
 bool IsNotFound(string* locations, int locationsnmb, string input);
-void AddLocations(string*& locations, int& locationsnmb, const string& file);
+void Expand(string*& locations, int& size);
+void AddLocations(string*& locations, int& locationsnmb, const string& file, int& size);
 void AddDistances(string* pattern, int**& distances, int locationsnmb, const string& file);
 int GetPosition(string* pattern, string location, int locationsnmb);
 int CalculateDistance(string* pattern, string* locations, int** distances, int locationsnmb);
@@ -19,11 +20,12 @@ int CalculateDistance(string* pattern, string* locations, int** distances, int l
 
 int main()
 {
-	string* locations = new string[20];
+	int size = 5;
+	string* locations = new string[size];
 	int locationsnmb = 0;
 	const string file = "input.txt";
 	string lc1, lc2;
-	AddLocations(locations, locationsnmb, file);
+	AddLocations(locations, locationsnmb, file, size);
 	sort(locations, locations + locationsnmb);
 	int** distances = new int*[locationsnmb];
 	for (int i = 0; i < locationsnmb; i++)
@@ -98,13 +100,17 @@ bool IsNotFound(string* locations, int locationsnmb, string input)
 	return true;
 }
 
-void AddLocations(string*& locations, int& locationsnmb, const string& file)
+void AddLocations(string*& locations, int& locationsnmb, const string& file, int& size)
 {
 	string line;
 	ifstream input(file);
 	string lc1, lc2;
 	while (getline(input, line))
 	{
+		if (locationsnmb == size)
+		{
+			Expand(locations, size);
+		}
 		Cut(line, lc1, lc2);
 		if (IsNotFound(locations,locationsnmb,lc1))
 		{
@@ -134,15 +140,10 @@ void AddDistances(string* pattern, int**& distances, int locationsnmb, const str
 			{
 				continue;
 			}
-			string lookup, lookup2;
-			lookup = pattern[i];
-			lookup += " to ";
-			lookup += pattern[j];
-			lookup2 = pattern[j];
-			lookup2 += " to ";
-			lookup2 += pattern[i];
+			string lookup, lookup2, line;
+			lookup = pattern[i] + " to " + pattern[j];
+			lookup2 = pattern[j] + " to " + pattern[i];
 			ifstream input(file);
-			string line;
 			while (getline(input, line))
 			{
 				if (line.find(lookup) != string::npos)
@@ -210,4 +211,21 @@ int CalculateDistance(string* pattern, string* locations, int** distances, int l
 		distance += distances[pos1][pos2];
 	}
 	return distance;
+}
+
+void Expand(string*& locations, int& size)
+{
+	string * temporary = new string[size];
+	for (int i = 0; i < size; i++)
+	{
+		temporary[i] = locations[i];
+	}
+	delete[] locations;
+	locations = new string[2 * size];
+	for (int i = 0; i < size; i++)
+	{
+		locations[i] = temporary[i];
+	}
+	size *= 2;
+	delete[] temporary;
 }
