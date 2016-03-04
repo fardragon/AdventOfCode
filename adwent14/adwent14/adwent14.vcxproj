@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{72B44ABB-4786-4560-95DF-74A91BCF9E4B}</ProjectGuid>
+    <ProjectGuid>{9C3AE21C-447A-42B8-9E30-10D7DE448979}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>adwent13</RootNamespace>
+    <RootNamespace>adwent14</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
