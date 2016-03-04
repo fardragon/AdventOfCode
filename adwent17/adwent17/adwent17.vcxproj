@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{FCFB576C-BFDD-4817-9D67-35899A69F252}</ProjectGuid>
+    <ProjectGuid>{3726E3B7-C84D-4D7B-B10C-02F9140B2274}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>adwent12</RootNamespace>
+    <RootNamespace>adwent17</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -147,9 +147,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="json.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

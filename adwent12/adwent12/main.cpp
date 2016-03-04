@@ -2,7 +2,7 @@
 #include <string>
 #include <fstream>
 #include <conio.h>
-#include "json.h"
+
 
 using namespace std;
 
@@ -12,15 +12,24 @@ string input;
 int main()
 {
 	ifstream file("json.txt");
-	getline(file, input);
-	file.close();
-	json::Object my_data = json::Deserialize(input);
-	for (json::Object::ValueMap::iterator it = my_data.begin(); it != my_data.end(); ++it)
+	char character;
+	int sum = 0;
+	string number;
+	while (file >> character)
 	{
-		cout << it->first << " " << it->second.ToInt() << endl;
+		if ((character >= '0') && (character <= '9'))
+		{
+			number += character;
+		}
+		else if (number.length() > 0)
+		{
+				sum += stoi(number);
+				number.clear();
+		}
+		
 	}
 
-
+	cout << sum;
 
 
 

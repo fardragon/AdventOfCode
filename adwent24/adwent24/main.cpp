@@ -8,8 +8,6 @@
 
 using namespace std;
 
-void subsets(int S[], int n);
-
 
 
 struct Subset
