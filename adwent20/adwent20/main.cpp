@@ -1,5 +1,5 @@
 #include <iostream>
-#include <fstream>
+#include <ctime>
 
 using namespace std;
 
@@ -7,37 +7,26 @@ using namespace std;
 
 int main()
 {
-
-	int i = 1;
-	int presents = 0;
+	long unsigned int i = 800000;
+	long unsigned int  presents = 0;
+	clock_t time = clock();
 	for (i; true; ++i)
 	{
 		presents = 0;
 		for (int j = 1; j <= i; ++j)
 		{
-			if (i % j == 0) presents += j * 10;
+			if ((i % j == 0)&&(i <= j*50)) presents += j * 11;
 		}
-		cout << presents << endl;
+		//cout << presents << endl;
+		//if (i == 831600) system("pause");
 		if (presents >= 36000000) break;
 
 	}
-	cout << i;
+	time = clock() - time;
+	cout << i << " in: " << time / (double)CLOCKS_PER_SEC << endl;
+	
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-	system("pause");
 	return i;
 }
 
