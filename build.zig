@@ -47,4 +47,5 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     buildDay(b, &target, &optimize, "day_test");
+    buildDay(b, &target, &optimize, "day_1");
 }
