@@ -48,4 +48,5 @@ pub fn build(b: *std.Build) void {
 
     buildDay(b, &target, &optimize, "day_test");
     buildDay(b, &target, &optimize, "day_1");
+    buildDay(b, &target, &optimize, "day_2");
 }
