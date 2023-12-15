@@ -4,7 +4,7 @@ pub fn readFileInput(allocator: std.mem.Allocator, input_file_path: []const u8) 
     var file = try std.fs.cwd().openFile(input_file_path, .{ .mode = std.fs.File.OpenMode.read_only });
     defer file.close();
 
-    var buffer: [1024]u8 = undefined;
+    var buffer: [1024 * 128]u8 = undefined;
     var reader = std.io.bufferedReader(file.reader());
 
     var result = std.ArrayList([]u8).init(allocator);
