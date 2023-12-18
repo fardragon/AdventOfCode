@@ -7,24 +7,6 @@ const Direction = enum {
     down,
     left,
     right,
-
-    fn cw(self: Direction) Direction {
-        return switch (self) {
-            .up => .right,
-            .right => .down,
-            .down => .left,
-            .left => .up,
-        };
-    }
-
-    fn ccw(self: Direction) Direction {
-        return switch (self) {
-            .up => .left,
-            .left => .down,
-            .down => .right,
-            .right => .up,
-        };
-    }
 };
 
 const Position = common.Pair(i64, i64);
