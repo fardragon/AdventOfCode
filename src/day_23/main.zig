@@ -236,13 +236,6 @@ fn calculateDistances(
     return distances;
 }
 
-// def dfs(graph, start, end):
-//     stack = deque([(start, 0, {start})])
-//     max_distance = 0
-//     while stack:
-
-//     return max_distance
-
 fn intersectionsDFS(
     allocator: std.mem.Allocator,
     graph: *const std.AutoArrayHashMap(usize, std.AutoArrayHashMap(usize, usize)),
