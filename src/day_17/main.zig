@@ -91,7 +91,7 @@ fn nextStates(allocator: std.mem.Allocator, state: State, puzzle: Puzzle, min_st
     var result = std.ArrayList(State).init(allocator);
     errdefer result.deinit();
 
-    var pos = state.pos;
+    const pos = state.pos;
     var dir = state.dir;
 
     if (!state.hasTurned and state.steps >= min_straight) {

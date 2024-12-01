@@ -12,8 +12,8 @@ fn parseCard(allocator: std.mem.Allocator, input: []const u8) !Card {
 
     _ = it.first();
     var card_split = std.mem.splitScalar(u8, it.next().?, '|');
-    var winning_numbers = card_split.first();
-    var numbers = card_split.next().?;
+    const winning_numbers = card_split.first();
+    const numbers = card_split.next().?;
 
     var winning_numbers_list = std.ArrayList(u8).init(allocator);
     errdefer {
@@ -25,7 +25,7 @@ fn parseCard(allocator: std.mem.Allocator, input: []const u8) !Card {
     while (winning_numbers_split.next()) |str| {
         if (str.len == 0) continue;
 
-        var parsed_number = try std.fmt.parseInt(u8, str, 10);
+        const parsed_number = try std.fmt.parseInt(u8, str, 10);
         try winning_numbers_list.append(parsed_number);
     }
 
@@ -38,7 +38,7 @@ fn parseCard(allocator: std.mem.Allocator, input: []const u8) !Card {
     while (numbers_split.next()) |str| {
         if (str.len == 0) continue;
 
-        var parsed_number = try std.fmt.parseInt(u8, str, 10);
+        const parsed_number = try std.fmt.parseInt(u8, str, 10);
         try numbers_set.put(parsed_number, {});
     }
 

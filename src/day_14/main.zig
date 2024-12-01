@@ -141,9 +141,9 @@ const Cache = struct {
     }
 
     fn put(self: *Self, pattern: []const u8, value: u64) !void {
-        var entry_pattern = try self.allocator.dupe(u8, pattern);
+        const entry_pattern = try self.allocator.dupe(u8, pattern);
 
-        var key = Self.CacheKey{
+        const key = Self.CacheKey{
             .pattern = entry_pattern,
         };
 
@@ -151,7 +151,7 @@ const Cache = struct {
     }
 
     fn get(self: *const Self, pattern: []const u8) ?u64 {
-        var key = Self.CacheKey{
+        const key = Self.CacheKey{
             .pattern = pattern,
         };
 

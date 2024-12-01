@@ -113,7 +113,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, max_steps
         for (neighbours) |n_opt| {
             if (n_opt) |n| {
                 if (puzzle.grid.items[n] == '.') {
-                    var new_state = QueueState{ .first = n, .second = steps + 1 };
+                    const new_state = QueueState{ .first = n, .second = steps + 1 };
                     if (!visited.contains(new_state)) {
                         try queue.append(new_state);
                     }
@@ -218,7 +218,7 @@ fn countPositions(allocator: std.mem.Allocator, big_positions: std.AutoArrayHash
     errdefer result.deinit();
 
     for (big_positions.keys()) |big_position| {
-        var entry = try result.getOrPut(big_position.grid);
+        const entry = try result.getOrPut(big_position.grid);
 
         if (entry.found_existing) {
             entry.value_ptr.* += 1;

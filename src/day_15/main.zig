@@ -79,7 +79,7 @@ const Instruction = struct {
 fn parseInstruction(allocator: std.mem.Allocator, str: []const u8) !Instruction {
     if (str[str.len - 1] == '-') {
         //remove instruction
-        var label = try allocator.dupe(u8, str[0 .. str.len - 1]);
+        const label = try allocator.dupe(u8, str[0 .. str.len - 1]);
         errdefer allocator.free(label);
 
         return Instruction{ .box = applyHASH(label), .label = label, .action = Action{
@@ -88,10 +88,10 @@ fn parseInstruction(allocator: std.mem.Allocator, str: []const u8) !Instruction 
     } else {
         var it = std.mem.splitScalar(u8, str, '=');
 
-        var label = try allocator.dupe(u8, it.first());
+        const label = try allocator.dupe(u8, it.first());
         errdefer allocator.free(label);
 
-        var lens = try std.fmt.parseInt(u8, it.next().?, 10);
+        const lens = try std.fmt.parseInt(u8, it.next().?, 10);
 
         return Instruction{
             .box = applyHASH(label),
@@ -190,7 +190,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     }
 
     for (strings.items) |str| {
-        var instruction = try parseInstruction(allocator, str.str);
+        const instruction = try parseInstruction(allocator, str.str);
         defer allocator.free(instruction.label);
 
         switch (instruction.action) {

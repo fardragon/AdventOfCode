@@ -58,7 +58,7 @@ fn crash(allocator: std.mem.Allocator, children_map: std.AutoArrayHashMap(usize,
 
     for (children_map.values()) |children| {
         for (children.keys()) |c| {
-            var entry = try deps.getOrPut(c);
+            const entry = try deps.getOrPut(c);
 
             if (entry.found_existing) {
                 entry.value_ptr.* += 1;
@@ -79,7 +79,7 @@ fn crash(allocator: std.mem.Allocator, children_map: std.AutoArrayHashMap(usize,
         result += 1;
         if (children_map.get(ix)) |children| {
             for (children.keys()) |c| {
-                var entry = deps.getPtr(c).?;
+                const entry = deps.getPtr(c).?;
                 entry.* -= 1;
                 if (entry.* == 0) {
                     try queue.append(c);
@@ -138,16 +138,16 @@ fn solve(allocator: std.mem.Allocator, input: []const []const u8) !common.Pair(u
 
                 if (highestZ.get(pos)) |old| {
                     if ((old.first) == newZ) {
-                        var c_entry = try children_map.getOrPut(old.second);
+                        const c_entry = try children_map.getOrPut(old.second);
                         if (!c_entry.found_existing) c_entry.value_ptr.* = std.AutoArrayHashMap(usize, void).init(allocator);
                         try c_entry.value_ptr.*.put(ix, {});
 
-                        var p_entry = try parents_map.getOrPut(ix);
+                        const p_entry = try parents_map.getOrPut(ix);
                         if (!p_entry.found_existing) p_entry.value_ptr.* = std.AutoArrayHashMap(usize, void).init(allocator);
                         try p_entry.value_ptr.*.put(old.second, {});
                     }
                 } else if (brick.z1 == 1) {
-                    var c_entry = try children_map.getOrPut(ground);
+                    const c_entry = try children_map.getOrPut(ground);
                     if (!c_entry.found_existing) c_entry.value_ptr.* = std.AutoArrayHashMap(usize, void).init(allocator);
                     try c_entry.value_ptr.*.put(ix, {});
                 }

@@ -193,7 +193,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var it = gears.iterator();
     while (it.next()) |gear| {
         if (gear.value_ptr.*.items.len == 2) {
-            var gear_ratio = @as(u64, gear.value_ptr.*.items[0]) * gear.value_ptr.*.items[1];
+            const gear_ratio = @as(u64, gear.value_ptr.*.items[0]) * gear.value_ptr.*.items[1];
             result += gear_ratio;
         }
     }

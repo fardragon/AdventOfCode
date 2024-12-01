@@ -31,7 +31,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Arra
         var it = std.mem.splitScalar(u8, line, ' ');
 
         //direction
-        var dir_str = it.first();
+        const dir_str = it.first();
         if (dir_str.len != 1) {
             @panic("Invalid input!");
         }
@@ -68,7 +68,7 @@ fn area(points: []const Position) u64 {
         s2 += (points[ix + 1].first * points[ix].second);
     }
 
-    const result_area = std.math.absCast(s1 - s2) / 2;
+    const result_area = @abs(s1 - s2) / 2;
     const perim = perimeter(points);
     return @truncate(result_area - perim / 2 + 1);
 }

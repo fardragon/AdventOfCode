@@ -205,7 +205,7 @@ fn pushButton(allocator: std.mem.Allocator, modules: *std.StringArrayHashMap(Mod
     });
 
     while (pulses.items.len > 0) {
-        var pulse = pulses.orderedRemove(0);
+        const pulse = pulses.orderedRemove(0);
         // std.debug.print("{s} {} -> {s}\n", .{ pulse.source, pulse.level, pulse.destination });
 
         if (pulse.level) {
@@ -241,7 +241,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var highs: u64 = 0;
 
     for (0..1000) |_| {
-        var partial = try pushButton(allocator, &modules);
+        const partial = try pushButton(allocator, &modules);
 
         lows += partial.first;
         highs += partial.second;
@@ -264,7 +264,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
     var seen = std.bit_set.IntegerBitSet(64).initEmpty();
 
-    var rx_module = modules.getPtr("rx").?;
+    const rx_module = modules.getPtr("rx").?;
 
     // find rx input
     var rx_source: ?*Module = null;

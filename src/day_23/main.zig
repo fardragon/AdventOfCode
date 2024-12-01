@@ -112,8 +112,8 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var distance: u64 = 0;
 
     while (queue.items.len > 0) {
-        var qitem = queue.orderedRemove(0);
-        var position = qitem.first;
+        const qitem = queue.orderedRemove(0);
+        const position = qitem.first;
         var visited = qitem.second;
         defer visited.deinit();
 
@@ -268,7 +268,7 @@ fn intersectionsDFS(
     var max_distance: u64 = 0;
 
     while (queue.items.len > 0) {
-        var qitem = queue.pop();
+        const qitem = queue.pop();
 
         var visited = qitem.visited;
         defer visited.deinit();

@@ -77,10 +77,10 @@ const Cache = struct {
     }
 
     fn put(self: *Self, pattern: []const u8, numbers: []const u8, value: u64) !void {
-        var entry_pattern = try self.allocator.dupe(u8, pattern);
-        var entry_numbers = try self.allocator.dupe(u8, numbers);
+        const entry_pattern = try self.allocator.dupe(u8, pattern);
+        const entry_numbers = try self.allocator.dupe(u8, numbers);
 
-        var key = Self.CacheKey{
+        const key = Self.CacheKey{
             .pattern = entry_pattern,
             .numbers = entry_numbers,
         };
@@ -89,7 +89,7 @@ const Cache = struct {
     }
 
     fn get(self: *const Self, pattern: []const u8, numbers: []const u8) ?u64 {
-        var key = Self.CacheKey{
+        const key = Self.CacheKey{
             .pattern = pattern,
             .numbers = numbers,
         };
@@ -218,7 +218,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     }
 
     for (springs.items) |spring| {
-        var new_pattern = try std.fmt.allocPrint(
+        const new_pattern = try std.fmt.allocPrint(
             allocator,
             "{s}?{s}?{s}?{s}?{s}",
             .{ spring.pattern.str, spring.pattern.str, spring.pattern.str, spring.pattern.str, spring.pattern.str },

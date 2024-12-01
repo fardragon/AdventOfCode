@@ -41,7 +41,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Graph {
             }
         }
 
-        var entry = try result.getOrPut(node_name);
+        const entry = try result.getOrPut(node_name);
 
         if (entry.found_existing) {
             try entry.value_ptr.*.connections.appendSlice(node_connections.items);

@@ -71,7 +71,7 @@ fn parseInstruction(allocator: std.mem.Allocator, instruction_str: []const u8) !
     var it = std.mem.splitScalar(u8, instruction_str, ',');
 
     while (it.next()) |part| {
-        var colon = std.mem.indexOfScalar(u8, part, ':');
+        const colon = std.mem.indexOfScalar(u8, part, ':');
 
         if (colon) |col| {
             var rule = Rule{
@@ -252,10 +252,10 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     });
 
     while (queue.items.len > 0) {
-        var elem = queue.pop();
+        const elem = queue.pop();
 
         var current_range = elem.first;
-        var current_instruction_str = elem.second;
+        const current_instruction_str = elem.second;
 
         if (std.mem.eql(u8, current_instruction_str, "A")) {
             try accepted_ranges.append(current_range);
@@ -264,7 +264,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
             continue;
         }
 
-        var current_instruction = puzzle.instructions.getPtr(current_instruction_str).?;
+        const current_instruction = puzzle.instructions.getPtr(current_instruction_str).?;
 
         outer: for (current_instruction.rules.items) |current_rule| {
             const variable_range = current_range.ranges[current_rule.variable];

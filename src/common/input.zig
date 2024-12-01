@@ -16,7 +16,7 @@ pub fn readFileInput(allocator: std.mem.Allocator, input_file_path: []const u8) 
     }
 
     while (try reader.reader().readUntilDelimiterOrEof(&buffer, '\n')) |line| {
-        var result_line = try allocator.dupe(u8, line);
+        const result_line = try allocator.dupe(u8, line);
         errdefer allocator.free(result_line);
 
         try result.append(result_line);

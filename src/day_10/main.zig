@@ -156,7 +156,7 @@ fn step(puzzle: Puzzle, position: usize, direction: Direction) StepResult {
         else => unreachable,
     }
 
-    var new_position = switch (new_direction) {
+    const new_position = switch (new_direction) {
         .down => position + puzzle.width,
         .up => position - puzzle.width,
         .left => position - 1,
@@ -177,7 +177,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var position = puzzle.starting_point;
 
     while (true) {
-        var step_result = step(puzzle, position, direction);
+        const step_result = step(puzzle, position, direction);
 
         position = step_result.new_position;
         direction = step_result.new_direction;
@@ -202,7 +202,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
     // walk the main loop to get its points
     while (true) {
-        var step_result = step(puzzle, position, direction);
+        const step_result = step(puzzle, position, direction);
 
         position = step_result.new_position;
         direction = step_result.new_direction;
@@ -218,10 +218,10 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         var wall_count: usize = 0;
         var previous_symbol: u8 = ' ';
         for (0..puzzle.width) |x| {
-            var current_position = puzzle.mapToIndex(x, y);
+            const current_position = puzzle.mapToIndex(x, y);
 
-            var is_part_of_main_loop = mainLoopPipes.contains(current_position);
-            var current_symbol = puzzle.pipes.items[current_position];
+            const is_part_of_main_loop = mainLoopPipes.contains(current_position);
+            const current_symbol = puzzle.pipes.items[current_position];
 
             if (is_part_of_main_loop and current_symbol != '-') {
                 wall_count += 1;

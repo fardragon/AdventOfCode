@@ -68,7 +68,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Almanac 
     var seeds_split = std.mem.splitScalar(u8, seeds_line, ' ');
 
     while (seeds_split.next()) |seed_str| {
-        var seed = try std.fmt.parseInt(u64, seed_str, 10);
+        const seed = try std.fmt.parseInt(u64, seed_str, 10);
         try seeds.append(seed);
     }
 
@@ -157,7 +157,7 @@ fn processRangeThroughhMap(allocator: std.mem.Allocator, map: Map, range: Result
     errdefer mapped_ranges.deinit();
 
     while (unmapped_ranges.items.len > 0) {
-        var unmapped_range = unmapped_ranges.pop();
+        const unmapped_range = unmapped_ranges.pop();
         var matched_something = false;
 
         map_loop: for (map.ranges.items) |mapping_range| {

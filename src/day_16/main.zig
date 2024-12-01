@@ -55,8 +55,8 @@ const BeamState = struct {
 const BeamResult = common.Pair(?BeamState, ?BeamState);
 
 fn moveUp(puzzle: Puzzle, current_state: BeamState) ?BeamState {
-    var x = puzzle.mapToX(current_state.position);
-    var y = puzzle.mapToY(current_state.position);
+    const x = puzzle.mapToX(current_state.position);
+    const y = puzzle.mapToY(current_state.position);
 
     if (y > 0) {
         return BeamState{
@@ -69,8 +69,8 @@ fn moveUp(puzzle: Puzzle, current_state: BeamState) ?BeamState {
 }
 
 fn moveDown(puzzle: Puzzle, current_state: BeamState) ?BeamState {
-    var x = puzzle.mapToX(current_state.position);
-    var y = puzzle.mapToY(current_state.position);
+    const x = puzzle.mapToX(current_state.position);
+    const y = puzzle.mapToY(current_state.position);
 
     if (y + 1 < puzzle.height) {
         return BeamState{
@@ -83,7 +83,7 @@ fn moveDown(puzzle: Puzzle, current_state: BeamState) ?BeamState {
 }
 
 fn moveRight(puzzle: Puzzle, current_state: BeamState) ?BeamState {
-    var x = puzzle.mapToX(current_state.position);
+    const x = puzzle.mapToX(current_state.position);
 
     if (x + 1 < puzzle.width) {
         return BeamState{
@@ -96,7 +96,7 @@ fn moveRight(puzzle: Puzzle, current_state: BeamState) ?BeamState {
 }
 
 fn moveLeft(puzzle: Puzzle, current_state: BeamState) ?BeamState {
-    var x = puzzle.mapToX(current_state.position);
+    const x = puzzle.mapToX(current_state.position);
 
     if (x > 0) {
         return BeamState{
@@ -109,7 +109,7 @@ fn moveLeft(puzzle: Puzzle, current_state: BeamState) ?BeamState {
 }
 
 fn step(puzzle: Puzzle, current_state: BeamState) BeamResult {
-    var current = puzzle.grid.items[current_state.position];
+    const current = puzzle.grid.items[current_state.position];
     var first_result: ?BeamState = null;
     var second_result: ?BeamState = null;
 
@@ -221,7 +221,7 @@ fn solve(allocator: std.mem.Allocator, puzzle: Puzzle, initial_beam: BeamState) 
                 try cache.put(beam, {});
             }
 
-            var result = step(puzzle, beam);
+            const result = step(puzzle, beam);
 
             if (result.first) |new_beam| {
                 try new_beams.append(new_beam);

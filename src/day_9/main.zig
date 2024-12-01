@@ -20,7 +20,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Arra
             report.deinit();
         }
         while (it.next()) |n| {
-            var num = try std.fmt.parseInt(i64, n, 10);
+            const num = try std.fmt.parseInt(i64, n, 10);
             try report.append(num);
         }
 
