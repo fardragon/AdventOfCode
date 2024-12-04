@@ -1,4 +1,5 @@
 pub const input = @import("input.zig");
+pub const grid = @import("grid.zig");
 const std = @import("std");
 
 pub fn Pair(comptime FirstType: type, comptime SecondType: type) type {
