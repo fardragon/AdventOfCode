@@ -174,6 +174,7 @@ const test_input = [_][]const u8{
     "61,13,29",
     "97,13,75,29,47",
 };
+
 test "solve part 1 test" {
     const allocator = std.testing.allocator;
     const result = try solvePart1(allocator, &test_input);
