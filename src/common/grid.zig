@@ -41,6 +41,13 @@ pub fn Grid(comptime T: type) type {
             return self.data.items[@as(usize, @intCast(y)) * self.width + @as(usize, @intCast(x))];
         }
 
+        pub fn set(self: *Self, x: isize, y: isize, value: T) !void {
+            if (x < 0 or x >= self.width) return error.OutOfBounds;
+            if (y < 0 or y >= self.height) return error.OutOfBounds;
+
+            self.data.items[@as(usize, @intCast(y)) * self.width + @as(usize, @intCast(x))] = value;
+        }
+
         pub fn len(self: Self) usize {
             return self.height * self.width;
         }
