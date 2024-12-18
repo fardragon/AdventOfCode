@@ -27,3 +27,50 @@ pub const String = struct {
         self.allocator.free(self.str);
     }
 };
+
+pub const Direction = enum {
+    Up,
+    Down,
+    Left,
+    Right,
+
+    pub fn toOffset(self: Direction) struct { isize, isize } {
+        return switch (self) {
+            Direction.Left => .{ -1, 0 },
+            Direction.Right => .{ 1, 0 },
+            Direction.Up => .{ 0, -1 },
+            Direction.Down => .{ 0, 1 },
+        };
+    }
+
+    pub fn rotateCW(self: Direction) Direction {
+        return switch (self) {
+            .Up => .Right,
+            .Right => .Down,
+            .Down => .Left,
+            .Left => .Up,
+        };
+    }
+
+    pub fn rotateCCW(self: Direction) Direction {
+        return switch (self) {
+            .Up => .Left,
+            .Left => .Down,
+            .Down => .Right,
+            .Right => .Up,
+        };
+    }
+
+    pub fn flip(self: Direction) Direction {
+        return self.rotateCW().rotateCW();
+    }
+
+    pub fn all() [4]Direction {
+        return .{
+            Direction.Up,
+            Direction.Down,
+            Direction.Left,
+            Direction.Right,
+        };
+    }
+};

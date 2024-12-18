@@ -82,5 +82,5 @@ pub fn build(b: *std.Build) void {
     const run_all_tests_step = b.step("test_all", "Run all tests");
 
     buildYear(b, &target, &optimize, common_module, run_all_tests_step, 2023, 25);
-    buildYear(b, &target, &optimize, common_module, run_all_tests_step, 2024, 17);
+    buildYear(b, &target, &optimize, common_module, run_all_tests_step, 2024, 18);
 }

@@ -1,6 +1,7 @@
 const std = @import("std");
 const common = @import("common");
 const common_input = common.input;
+const Direction = common.Direction;
 
 const Field = enum {
     Empty,
@@ -31,22 +32,6 @@ fn Warehouse(GridType: type) type {
         }
     };
 }
-
-const Direction = enum {
-    up,
-    down,
-    left,
-    right,
-
-    fn toOffset(self: Direction) struct { isize, isize } {
-        return switch (self) {
-            Direction.left => .{ -1, 0 },
-            Direction.right => .{ 1, 0 },
-            Direction.up => .{ 0, -1 },
-            Direction.down => .{ 0, 1 },
-        };
-    }
-};
 
 fn parseWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !Warehouse(Grid) {
     const expected_width = input[0].len;
@@ -87,10 +72,10 @@ fn parseWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !Ware
         } else {
             for (line) |char| {
                 switch (char) {
-                    '^' => try instructions.append(Direction.up),
-                    'v' => try instructions.append(Direction.down),
-                    '<' => try instructions.append(Direction.left),
-                    '>' => try instructions.append(Direction.right),
+                    '^' => try instructions.append(Direction.Up),
+                    'v' => try instructions.append(Direction.Down),
+                    '<' => try instructions.append(Direction.Left),
+                    '>' => try instructions.append(Direction.Right),
                     else => return error.MalformedInput,
                 }
             }
@@ -150,10 +135,10 @@ fn parseWideWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !
         } else {
             for (line) |char| {
                 switch (char) {
-                    '^' => try instructions.append(Direction.up),
-                    'v' => try instructions.append(Direction.down),
-                    '<' => try instructions.append(Direction.left),
-                    '>' => try instructions.append(Direction.right),
+                    '^' => try instructions.append(Direction.Up),
+                    'v' => try instructions.append(Direction.Down),
+                    '<' => try instructions.append(Direction.Left),
+                    '>' => try instructions.append(Direction.Right),
                     else => return error.MalformedInput,
                 }
             }
@@ -327,11 +312,11 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
             WideField.Wall => {},
             WideField.BoxLeft, WideField.BoxRight => {
                 switch (instruction) {
-                    Direction.left, Direction.right => {
+                    Direction.Left, Direction.Right => {
                         if (findEmptyWideFieldInHorizontalDirection(warehouse.map, new_x, new_y, off_x)) |empty_field| {
                             var empty_x, const empty_y = empty_field;
 
-                            var box_left = instruction == Direction.left;
+                            var box_left = instruction == Direction.Left;
 
                             while (empty_x != new_x) : (empty_x -= off_x) {
                                 const box = if (box_left) WideField.BoxLeft else WideField.BoxRight;
@@ -343,7 +328,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                         }
                     },
 
-                    Direction.up, Direction.down => {
+                    Direction.Up, Direction.Down => {
                         var m_boxes_to_move = try findEmptyWideFieldsInVerticalDirection(allocator, warehouse.map, new_x, new_y, off_y);
                         if (m_boxes_to_move) |*boxes_to_move| {
                             defer {

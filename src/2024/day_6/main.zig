@@ -1,6 +1,7 @@
 const std = @import("std");
 const common = @import("common");
 const common_input = common.input;
+const Direction = common.Direction;
 
 const Field = enum {
     Empty,
@@ -17,22 +18,6 @@ const Map = struct {
         return Map{
             .map = try self.map.clone(),
             .guard = self.guard,
-        };
-    }
-};
-
-const Direction = enum {
-    up,
-    down,
-    left,
-    right,
-
-    pub fn rotateRight(self: Direction) Direction {
-        return switch (self) {
-            .up => .right,
-            .right => .down,
-            .down => .left,
-            .left => .up,
         };
     }
 };
@@ -72,19 +57,15 @@ fn parseMap(allocator: std.mem.Allocator, input: []const []const u8) !Map {
 }
 
 fn moveGuard(x: isize, y: isize, direction: Direction) struct { isize, isize } {
-    return switch (direction) {
-        .up => .{ x, y - 1 },
-        .down => .{ x, y + 1 },
-        .left => .{ x - 1, y },
-        .right => .{ x + 1, y },
-    };
+    const offX, const offY = direction.toOffset();
+    return .{ x + offX, y + offY };
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     const map = try parseMap(allocator, input);
     defer map.map.data.deinit();
 
-    var guard_direction = Direction.up;
+    var guard_direction = Direction.Up;
     var guard_x, var guard_y = try map.map.mapToXY(map.guard);
 
     var visited_fields = std.AutoHashMap(isize, void).init(allocator);
@@ -99,7 +80,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         if (map.map.get(next_guard_x, next_guard_y)) |next_field| {
             guard_x, guard_y, guard_direction = switch (next_field) {
                 .Empty => .{ next_guard_x, next_guard_y, guard_direction },
-                .Wall => .{ guard_x, guard_y, guard_direction.rotateRight() },
+                .Wall => .{ guard_x, guard_y, guard_direction.rotateCW() },
             };
         } else break;
     }
@@ -108,7 +89,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn detectMapLoop(allocator: std.mem.Allocator, map: Map) !bool {
-    var guard_direction = Direction.up;
+    var guard_direction = Direction.Up;
     var guard_x, var guard_y = try map.map.mapToXY(map.guard);
 
     var visited_fields = std.AutoArrayHashMap(struct { isize, Direction }, void).init(allocator);
@@ -126,7 +107,7 @@ fn detectMapLoop(allocator: std.mem.Allocator, map: Map) !bool {
         if (map.map.get(next_guard_x, next_guard_y)) |next_field| {
             guard_x, guard_y, guard_direction = switch (next_field) {
                 .Empty => .{ next_guard_x, next_guard_y, guard_direction },
-                .Wall => .{ guard_x, guard_y, guard_direction.rotateRight() },
+                .Wall => .{ guard_x, guard_y, guard_direction.rotateCW() },
             };
         } else break;
     }

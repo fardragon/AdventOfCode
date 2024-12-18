@@ -1,6 +1,7 @@
 const std = @import("std");
 const common = @import("common");
 const common_input = common.input;
+const Direction = common.Direction;
 
 const Field = enum {
     Empty,
@@ -15,53 +16,6 @@ const Map = struct {
 
     fn deinit(self: Map) void {
         self.map.data.deinit();
-    }
-};
-
-const Direction = enum {
-    Up,
-    Down,
-    Left,
-    Right,
-
-    fn toOffset(self: Direction) struct { isize, isize } {
-        return switch (self) {
-            Direction.Left => .{ -1, 0 },
-            Direction.Right => .{ 1, 0 },
-            Direction.Up => .{ 0, -1 },
-            Direction.Down => .{ 0, 1 },
-        };
-    }
-
-    fn rotateCW(self: Direction) Direction {
-        return switch (self) {
-            .Up => .Right,
-            .Right => .Down,
-            .Down => .Left,
-            .Left => .Up,
-        };
-    }
-
-    fn rotateCCW(self: Direction) Direction {
-        return switch (self) {
-            .Up => .Left,
-            .Left => .Down,
-            .Down => .Right,
-            .Right => .Up,
-        };
-    }
-
-    fn flip(self: Direction) Direction {
-        return self.rotateCW().rotateCW();
-    }
-
-    fn all() [4]Direction {
-        return .{
-            Direction.Up,
-            Direction.Down,
-            Direction.Left,
-            Direction.Right,
-        };
     }
 };
 
