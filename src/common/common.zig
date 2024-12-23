@@ -1,7 +1,9 @@
 pub const input = @import("input.zig");
 pub const grid = @import("grid.zig");
 pub const parsing = @import("parsing.zig");
-pub const AutoHashSet = @import("hash_set.zig").AutoHashSet;
+const custom_hash_set = @import("hash_set.zig");
+pub const AutoHashSet = custom_hash_set.AutoHashSet;
+pub const StringHashSet = custom_hash_set.StringHashSet;
 const std = @import("std");
 
 pub fn Pair(comptime FirstType: type, comptime SecondType: type) type {

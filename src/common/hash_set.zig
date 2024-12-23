@@ -1,9 +1,19 @@
 const std = @import("std");
 
+fn getContext(comptime K: type) type {
+    if (K == []const u8) {
+        return std.hash_map.StringContext;
+    } else {
+        return std.hash_map.AutoContext(K);
+    }
+}
+
 pub fn AutoHashSet(comptime K: type) type {
     return struct {
         const Self = @This();
-        const InternalType = std.AutoHashMap(K, void);
+        const Context = getContext(K);
+
+        const InternalType = std.HashMap(K, void, Context, std.hash_map.default_max_load_percentage);
 
         internal: InternalType,
 
@@ -44,5 +54,13 @@ pub fn AutoHashSet(comptime K: type) type {
                 try self.put(val.*);
             }
         }
+
+        pub fn clone(self: Self) !Self {
+            return Self{
+                .internal = try self.internal.clone(),
+            };
+        }
     };
 }
+
+pub const StringHashSet: type = AutoHashSet([]const u8);
