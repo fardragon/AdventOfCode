@@ -251,9 +251,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         .second = "in",
     });
 
-    while (queue.items.len > 0) {
-        const elem = queue.pop();
-
+    while (queue.pop()) |elem| {
         var current_range = elem.first;
         const current_instruction_str = elem.second;
 

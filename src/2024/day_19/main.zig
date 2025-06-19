@@ -30,7 +30,7 @@ fn parseTowels(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(T
     var towels = std.ArrayList(Towel).init(allocator);
     errdefer towels.deinit();
 
-    var ix = std.mem.split(u8, input, ", ");
+    var ix = std.mem.splitSequence(u8, input, ", ");
 
     while (ix.next()) |towel_str| {
         try towels.append(try Towel.init(towel_str));

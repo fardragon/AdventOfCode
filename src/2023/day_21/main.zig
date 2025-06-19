@@ -99,7 +99,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, max_steps
     var visited = std.AutoArrayHashMap(QueueState, void).init(allocator);
     defer visited.deinit();
 
-    while (queue.popOrNull()) |queue_item| {
+    while (queue.pop()) |queue_item| {
         try visited.put(queue_item, {});
 
         const steps = queue_item.second;

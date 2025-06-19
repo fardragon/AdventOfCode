@@ -32,7 +32,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !struct {
         }
 
         if (parsing_inputs) {
-            var it = std.mem.split(u8, line, ": ");
+            var it = std.mem.splitSequence(u8, line, ": ");
             const wire = it.next();
             const value = it.next();
 

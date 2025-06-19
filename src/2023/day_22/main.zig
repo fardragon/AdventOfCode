@@ -14,7 +14,7 @@ const Brick = struct {
     fn init(coordinates: [6]usize) Brick {
         const t = @typeInfo(Brick);
         var self: Brick = undefined;
-        inline for (t.Struct.fields, 0..) |field, ix| {
+        inline for (t.@"struct".fields, 0..) |field, ix| {
             @field(self, field.name) = coordinates[ix];
         }
         return self;
@@ -75,7 +75,7 @@ fn crash(allocator: std.mem.Allocator, children_map: std.AutoArrayHashMap(usize,
 
     try queue.append(brick_index);
 
-    while (queue.popOrNull()) |ix| {
+    while (queue.pop()) |ix| {
         result += 1;
         if (children_map.get(ix)) |children| {
             for (children.keys()) |c| {

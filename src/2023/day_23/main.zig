@@ -267,9 +267,7 @@ fn intersectionsDFS(
 
     var max_distance: u64 = 0;
 
-    while (queue.items.len > 0) {
-        const qitem = queue.pop();
-
+    while (queue.pop()) |qitem| {
         var visited = qitem.visited;
         defer visited.deinit();
 

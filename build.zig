@@ -79,7 +79,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/common/common.zig"),
     });
 
-    const run_all_tests_step = b.step("test_all", "Run all tests");
+    const run_all_tests_step = b.step("test", "Run all tests");
 
     buildYear(b, &target, &optimize, common_module, run_all_tests_step, 2023, 25);
     buildYear(b, &target, &optimize, common_module, run_all_tests_step, 2024, 25);

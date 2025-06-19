@@ -12,7 +12,7 @@ fn parseButton(input: []const u8, button_name: u8) !struct { isize, isize } {
     var button_prefix = [_]u8{ 'B', 'u', 't', 't', 'o', 'n', ' ', button_name, ':', ' ' };
 
     if (!std.mem.startsWith(u8, input, &button_prefix)) return error.InvalidInput;
-    var it = std.mem.split(u8, input[9..], ", ");
+    var it = std.mem.splitSequence(u8, input[9..], ", ");
 
     const left = it.next();
     const right = it.next();
@@ -27,7 +27,7 @@ fn parseButton(input: []const u8, button_name: u8) !struct { isize, isize } {
 
 fn parsePrize(input: []const u8) !struct { isize, isize } {
     if (!std.mem.startsWith(u8, input, "Prize: ")) return error.InvalidInput;
-    var it = std.mem.split(u8, input[7..], ", ");
+    var it = std.mem.splitSequence(u8, input[7..], ", ");
 
     const left = it.next();
     const right = it.next();

@@ -157,7 +157,7 @@ fn processRangeThroughhMap(allocator: std.mem.Allocator, map: Map, range: Result
     errdefer mapped_ranges.deinit();
 
     while (unmapped_ranges.items.len > 0) {
-        const unmapped_range = unmapped_ranges.pop();
+        const unmapped_range = unmapped_ranges.pop().?;
         var matched_something = false;
 
         map_loop: for (map.ranges.items) |mapping_range| {
