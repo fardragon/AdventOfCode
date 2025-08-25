@@ -23,11 +23,11 @@ const Instruction = struct {
     rules: std.ArrayList(Rule),
     default: String,
 
-    fn deinit(self: *Instruction) void {
+    fn deinit(self: *Instruction, allocator: std.mem.Allocator) void {
         for (self.rules.items) |*rule| {
             rule.deinit();
         }
-        self.rules.deinit();
+        self.rules.deinit(allocator);
         self.default.deinit();
     }
 };
@@ -63,10 +63,10 @@ const Puzzle = struct {
 
 fn parseInstruction(allocator: std.mem.Allocator, instruction_str: []const u8) !Instruction {
     var result = Instruction{
-        .rules = std.ArrayList(Rule).init(allocator),
+        .rules = std.ArrayList(Rule).empty,
         .default = undefined,
     };
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     var it = std.mem.splitScalar(u8, instruction_str, ',');
 
@@ -92,7 +92,7 @@ fn parseInstruction(allocator: std.mem.Allocator, instruction_str: []const u8) !
             };
 
             errdefer rule.deinit();
-            try result.rules.append(rule);
+            try result.rules.append(allocator, rule);
         } else {
             result.default = try String.init(allocator, part);
         }
@@ -106,7 +106,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
     errdefer {
         var it = instructions.valueIterator();
         while (it.next()) |ins| {
-            ins.deinit();
+            ins.deinit(allocator);
         }
         instructions.deinit();
     }
@@ -123,13 +123,13 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
         const instruction_name = line[0..lbrace];
 
         var ins = try parseInstruction(allocator, line[lbrace + 1 .. line.len - 1]);
-        errdefer ins.deinit();
+        errdefer ins.deinit(allocator);
 
         try instructions.put(instruction_name, ins);
     }
 
-    var parts = std.ArrayList(Part).init(allocator);
-    errdefer parts.deinit();
+    var parts = std.ArrayList(Part).empty;
+    errdefer parts.deinit(allocator);
 
     if (sep == 0) return error.InvalidInput;
 
@@ -157,7 +157,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
                 else => unreachable,
             }
         }
-        try parts.append(res_part);
+        try parts.append(allocator, res_part);
     }
 
     return Puzzle{
@@ -171,14 +171,14 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     defer {
         var it = puzzle.instructions.valueIterator();
         while (it.next()) |ins| {
-            ins.deinit();
+            ins.deinit(allocator);
         }
         puzzle.instructions.deinit();
-        puzzle.parts.deinit();
+        puzzle.parts.deinit(allocator);
     }
 
-    var accepted_parts = std.ArrayList(Part).init(allocator);
-    defer accepted_parts.deinit();
+    var accepted_parts = std.ArrayList(Part).empty;
+    defer accepted_parts.deinit(allocator);
 
     for (puzzle.parts.items) |part| {
         var current_instruction = puzzle.instructions.getPtr("in").?;
@@ -193,7 +193,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                 };
                 if (matches) {
                     if (std.mem.eql(u8, rule.target.str, "A")) {
-                        try accepted_parts.append(part);
+                        try accepted_parts.append(allocator, part);
                         break :outer;
                     } else if (std.mem.eql(u8, rule.target.str, "R")) {
                         break :outer;
@@ -204,7 +204,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                 }
             }
             if (std.mem.eql(u8, current_instruction.*.default.str, "A")) {
-                try accepted_parts.append(part);
+                try accepted_parts.append(allocator, part);
                 break;
             } else if (std.mem.eql(u8, current_instruction.*.default.str, "R")) {
                 break;
@@ -228,26 +228,28 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     defer {
         var it = puzzle.instructions.valueIterator();
         while (it.next()) |ins| {
-            ins.deinit();
+            ins.deinit(allocator);
         }
         puzzle.instructions.deinit();
-        puzzle.parts.deinit();
+        puzzle.parts.deinit(allocator);
     }
 
-    var accepted_ranges = std.ArrayList(PartRange).init(allocator);
-    defer accepted_ranges.deinit();
+    var accepted_ranges = std.ArrayList(PartRange).empty;
+    defer accepted_ranges.deinit(allocator);
 
     const QueueElement = common.Pair(PartRange, []const u8);
-    var queue = std.ArrayList(QueueElement).init(allocator);
-    defer queue.deinit();
+    var queue = std.ArrayList(QueueElement).empty;
+    defer queue.deinit(allocator);
 
-    try queue.append(QueueElement{
-        .first = PartRange{ .ranges = .{
-            .{ 1, 4000 },
-            .{ 1, 4000 },
-            .{ 1, 4000 },
-            .{ 1, 4000 },
-        } },
+    try queue.append(allocator, QueueElement{
+        .first = PartRange{
+            .ranges = .{
+                .{ 1, 4000 },
+                .{ 1, 4000 },
+                .{ 1, 4000 },
+                .{ 1, 4000 },
+            },
+        },
         .second = "in",
     });
 
@@ -256,7 +258,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         const current_instruction_str = elem.second;
 
         if (std.mem.eql(u8, current_instruction_str, "A")) {
-            try accepted_ranges.append(current_range);
+            try accepted_ranges.append(allocator, current_range);
             continue;
         } else if (std.mem.eql(u8, current_instruction_str, "R")) {
             continue;
@@ -273,10 +275,13 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
             switch (current_rule.op) {
                 .LT => {
                     if (variable_range[1] < cutoff) {
-                        try queue.append(QueueElement{
-                            .first = current_range,
-                            .second = target_instruction,
-                        });
+                        try queue.append(
+                            allocator,
+                            QueueElement{
+                                .first = current_range,
+                                .second = target_instruction,
+                            },
+                        );
                         break :outer;
                     }
 
@@ -287,10 +292,13 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                             cutoff - 1,
                         };
 
-                        try queue.append(QueueElement{
-                            .first = new_range,
-                            .second = target_instruction,
-                        });
+                        try queue.append(
+                            allocator,
+                            QueueElement{
+                                .first = new_range,
+                                .second = target_instruction,
+                            },
+                        );
 
                         current_range.ranges[current_rule.variable] = .{
                             cutoff,
@@ -301,10 +309,13 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
                 .GT => {
                     if (variable_range[0] > cutoff) {
-                        try queue.append(QueueElement{
-                            .first = current_range,
-                            .second = target_instruction,
-                        });
+                        try queue.append(
+                            allocator,
+                            QueueElement{
+                                .first = current_range,
+                                .second = target_instruction,
+                            },
+                        );
                         break :outer;
                     }
 
@@ -315,10 +326,13 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                             variable_range[1],
                         };
 
-                        try queue.append(QueueElement{
-                            .first = new_range,
-                            .second = target_instruction,
-                        });
+                        try queue.append(
+                            allocator,
+                            QueueElement{
+                                .first = new_range,
+                                .second = target_instruction,
+                            },
+                        );
 
                         current_range.ranges[current_rule.variable] = .{
                             variable_range[0],
@@ -328,10 +342,13 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                 },
             }
         }
-        try queue.append(QueueElement{
-            .first = current_range,
-            .second = current_instruction.*.default.str,
-        });
+        try queue.append(
+            allocator,
+            QueueElement{
+                .first = current_range,
+                .second = current_instruction.*.default.str,
+            },
+        );
     }
 
     var result: u64 = 0;
@@ -348,12 +365,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

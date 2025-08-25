@@ -18,8 +18,8 @@ const Instruction = struct {
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Instruction) {
-    var result = std.ArrayList(Instruction).init(allocator);
-    errdefer result.deinit();
+    var result = std.ArrayList(Instruction).empty;
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
         var current = Instruction{
@@ -49,7 +49,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Arra
         var color_str = it.next().?;
         @memcpy(&current.color, color_str[2 .. color_str.len - 1]);
 
-        try result.append(current);
+        try result.append(allocator, current);
     }
 
     return result;
@@ -74,11 +74,11 @@ fn area(points: []const Position) u64 {
 }
 
 fn solve(allocator: std.mem.Allocator, instructions: []const Instruction) !u64 {
-    var points = std.ArrayList(Position).init(allocator);
-    defer points.deinit();
+    var points = std.ArrayList(Position).empty;
+    defer points.deinit(allocator);
 
     var position = Position{ .first = 0, .second = 0 };
-    try points.append(position);
+    try points.append(allocator, position);
 
     for (instructions) |instruction| {
         for (0..instruction.steps) |_| {
@@ -96,7 +96,7 @@ fn solve(allocator: std.mem.Allocator, instructions: []const Instruction) !u64 {
                     position.second += 1;
                 },
             }
-            try points.append(position);
+            try points.append(allocator, position);
         }
     }
 
@@ -105,14 +105,14 @@ fn solve(allocator: std.mem.Allocator, instructions: []const Instruction) !u64 {
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var instructions = try parseInput(allocator, input);
-    defer instructions.deinit();
+    defer instructions.deinit(allocator);
 
     return solve(allocator, instructions.items);
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var instructions = try parseInput(allocator, input);
-    defer instructions.deinit();
+    defer instructions.deinit(allocator);
 
     //fix instructions
 
@@ -136,12 +136,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

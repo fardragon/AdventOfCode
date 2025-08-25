@@ -36,18 +36,18 @@ fn parseRobot(input: []const u8) !Robot {
 }
 
 fn parseRobots(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Robot) {
-    var robots = std.ArrayList(Robot).init(allocator);
-    errdefer robots.deinit();
+    var robots = std.ArrayList(Robot).empty;
+    errdefer robots.deinit(allocator);
 
     for (input) |line| {
-        try robots.append(try parseRobot(line));
+        try robots.append(allocator, try parseRobot(line));
     }
     return robots;
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, width: isize, height: isize) !u64 {
-    const robots = try parseRobots(allocator, input);
-    defer robots.deinit();
+    var robots = try parseRobots(allocator, input);
+    defer robots.deinit(allocator);
 
     const seconds = 100;
 
@@ -76,14 +76,16 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, width: is
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8, width: isize, height: isize) !u64 {
-    const robots = try parseRobots(allocator, input);
-    defer robots.deinit();
+    var robots = try parseRobots(allocator, input);
+    defer robots.deinit(allocator);
 
     var grid: []u8 = try allocator.alloc(u8, @intCast(width * height));
     defer allocator.free(grid);
 
     var seconds: u64 = 0;
 
+    var buf: [10]u8 = undefined;
+    var stdin_reader = std.fs.File.stdin().reader(&buf);
     while (true) {
         @memset(grid, ' ');
 
@@ -106,8 +108,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8, width: is
             std.debug.print("\n\r", .{});
         }
 
-        var buf: [10]u8 = undefined;
-        if (try std.io.getStdIn().reader().readUntilDelimiterOrEof(buf[0..], '\n')) |user_input| {
+        if (stdin_reader.interface.takeDelimiterExclusive('\n')) |user_input| {
             if (std.mem.eql(u8, user_input, "s")) {
                 break;
             } else if (std.mem.eql(u8, user_input, "h")) {
@@ -117,7 +118,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8, width: is
             } else if (std.mem.eql(u8, user_input, "b")) {
                 seconds -= 2;
             }
-        }
+        } else |err| return err;
         seconds += 1;
     }
 
@@ -130,12 +131,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items, 101, 103)});

@@ -19,8 +19,8 @@ const Platform = struct {
         return y * self.width + x;
     }
 
-    fn deinit(self: *Platform) void {
-        self.map.deinit();
+    fn deinit(self: *Platform, allocator: std.mem.Allocator) void {
+        self.map.deinit(allocator);
     }
 
     fn tiltNorth(self: *Platform) void {
@@ -47,8 +47,8 @@ const Platform = struct {
         }
     }
 
-    fn rotateCW(self: *Platform) !void {
-        var new_map = try self.map.clone();
+    fn rotateCW(self: *Platform, allocator: std.mem.Allocator) !void {
+        var new_map = try self.map.clone(allocator);
         errdefer new_map.deinit();
         for (0..self.height) |i| {
             for (0..self.width) |j| {
@@ -60,7 +60,7 @@ const Platform = struct {
             }
         }
 
-        self.map.deinit();
+        self.map.deinit(allocator);
         self.map = new_map;
 
         const old_height = self.height;
@@ -68,10 +68,10 @@ const Platform = struct {
         self.width = old_height;
     }
 
-    fn cycle(self: *Platform) !void {
+    fn cycle(self: *Platform, allocator: std.mem.Allocator) !void {
         inline for (0..4) |_| {
             self.tiltNorth();
-            try self.rotateCW();
+            try self.rotateCW(allocator);
         }
     }
 
@@ -100,15 +100,15 @@ const Platform = struct {
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Platform {
     var result = Platform{
-        .map = std.ArrayList(u8).init(allocator),
+        .map = std.ArrayList(u8).empty,
         .width = input[0].len,
         .height = input.len,
     };
 
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
-        try result.map.appendSlice(line);
+        try result.map.appendSlice(allocator, line);
     }
 
     return result;
@@ -169,7 +169,7 @@ const Cache = struct {
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var platform = try parseInput(allocator, input);
-    defer platform.deinit();
+    defer platform.deinit(allocator);
 
     platform.tiltNorth();
 
@@ -178,7 +178,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var platform = try parseInput(allocator, input);
-    defer platform.deinit();
+    defer platform.deinit(allocator);
 
     var cache = Cache.init(allocator);
     defer cache.deinit();
@@ -194,13 +194,13 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
             try cache.put(platform.map.items, cycles);
         }
 
-        try platform.cycle();
+        try platform.cycle(allocator);
     }
 
     if (period_len) |period| {
         const remaining_cycles = (1_000_000_000 - cycles) % period;
         for (0..remaining_cycles) |_| {
-            try platform.cycle();
+            try platform.cycle(allocator);
         }
     } else {
         unreachable;
@@ -215,12 +215,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

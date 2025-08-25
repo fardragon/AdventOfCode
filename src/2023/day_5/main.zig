@@ -27,8 +27,8 @@ const Range = struct {
 const Map = struct {
     ranges: std.ArrayList(Range),
 
-    fn deinit(self: *Map) void {
-        self.ranges.deinit();
+    fn deinit(self: *Map, allocator: std.mem.Allocator) void {
+        self.ranges.deinit(allocator);
     }
 };
 
@@ -36,13 +36,13 @@ const Almanac = struct {
     seeds: std.ArrayList(u64),
     maps: std.ArrayList(Map),
 
-    fn deinit(self: *Almanac) void {
-        self.seeds.deinit();
+    fn deinit(self: *Almanac, allocator: std.mem.Allocator) void {
+        self.seeds.deinit(allocator);
 
         for (self.maps.items) |*map| {
-            map.deinit();
+            map.deinit(allocator);
         }
-        self.maps.deinit();
+        self.maps.deinit(allocator);
     }
 };
 
@@ -62,26 +62,26 @@ fn parseRange(input: []const u8) !Range {
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Almanac {
 
     // skip "seeds: "
-    var seeds = std.ArrayList(u64).init(allocator);
-    errdefer seeds.deinit();
+    var seeds = std.ArrayList(u64).empty;
+    errdefer seeds.deinit(allocator);
     const seeds_line = input[0][7..];
     var seeds_split = std.mem.splitScalar(u8, seeds_line, ' ');
 
     while (seeds_split.next()) |seed_str| {
         const seed = try std.fmt.parseInt(u64, seed_str, 10);
-        try seeds.append(seed);
+        try seeds.append(allocator, seed);
     }
 
     //skip empty line
     if (input[1].len != 0) unreachable;
 
-    var maps = std.ArrayList(Map).init(allocator);
-    errdefer maps.deinit();
+    var maps = std.ArrayList(Map).empty;
+    errdefer maps.deinit(allocator);
 
     var current_map: ?Map = null;
     errdefer {
         if (current_map) |*cr| {
-            cr.deinit();
+            cr.deinit(allocator);
         }
     }
 
@@ -89,7 +89,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Almanac 
         if (line.len == 0) {
             // end of map
             if (current_map) |cr| {
-                try maps.append(cr);
+                try maps.append(allocator, cr);
                 current_map = null;
             } else {
                 unreachable;
@@ -100,13 +100,13 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Almanac 
                 unreachable;
             } else {
                 current_map = Map{
-                    .ranges = std.ArrayList(Range).init(allocator),
+                    .ranges = std.ArrayList(Range).empty,
                 };
             }
         } else {
             //add range to map
             if (current_map) |*cr| {
-                try cr.ranges.append(try parseRange(line));
+                try cr.ranges.append(allocator, try parseRange(line));
             } else {
                 unreachable;
             }
@@ -115,7 +115,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Almanac 
 
     // add last map
     if (current_map) |cr| {
-        try maps.append(cr);
+        try maps.append(allocator, cr);
     } else {
         unreachable;
     }
@@ -128,7 +128,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Almanac 
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var almanac = try parseInput(allocator, input);
-    defer almanac.deinit();
+    defer almanac.deinit(allocator);
 
     var result: u64 = std.math.maxInt(u64);
 
@@ -149,12 +149,12 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn processRangeThroughhMap(allocator: std.mem.Allocator, map: Map, range: ResultRange) !std.ArrayList(ResultRange) {
-    var unmapped_ranges = std.ArrayList(ResultRange).init(allocator);
-    defer unmapped_ranges.deinit();
-    try unmapped_ranges.append(range);
+    var unmapped_ranges = std.ArrayList(ResultRange).empty;
+    defer unmapped_ranges.deinit(allocator);
+    try unmapped_ranges.append(allocator, range);
 
-    var mapped_ranges = std.ArrayList(ResultRange).init(allocator);
-    errdefer mapped_ranges.deinit();
+    var mapped_ranges = std.ArrayList(ResultRange).empty;
+    errdefer mapped_ranges.deinit(allocator);
 
     while (unmapped_ranges.items.len > 0) {
         const unmapped_range = unmapped_ranges.pop().?;
@@ -174,12 +174,12 @@ fn processRangeThroughhMap(allocator: std.mem.Allocator, map: Map, range: Result
 
                 if (overlap_start == unmapped_range.start) {
                     // "left overlap"
-                    try mapped_ranges.append(ResultRange{
+                    try mapped_ranges.append(allocator, ResultRange{
                         .start = mapping_range.destination + overlap_offset,
                         .length = overlap_length,
                     });
                     if (unmapped_range.length - overlap_length > 0) {
-                        try unmapped_ranges.append(ResultRange{
+                        try unmapped_ranges.append(allocator, ResultRange{
                             .start = unmapped_range.start + overlap_length,
                             .length = unmapped_range.length - overlap_length,
                         });
@@ -193,7 +193,7 @@ fn processRangeThroughhMap(allocator: std.mem.Allocator, map: Map, range: Result
             }
         }
         if (!matched_something) {
-            try mapped_ranges.append(unmapped_range);
+            try mapped_ranges.append(allocator, unmapped_range);
         }
     }
 
@@ -202,16 +202,16 @@ fn processRangeThroughhMap(allocator: std.mem.Allocator, map: Map, range: Result
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var almanac = try parseInput(allocator, input);
-    defer almanac.deinit();
+    defer almanac.deinit(allocator);
 
     //construct input ranges
-    var result_ranges = std.ArrayList(ResultRange).init(allocator);
-    defer result_ranges.deinit();
+    var result_ranges = std.ArrayList(ResultRange).empty;
+    defer result_ranges.deinit(allocator);
 
     {
         var i: usize = 0;
         while (i < almanac.seeds.items.len) : (i += 2) {
-            try result_ranges.append(ResultRange{
+            try result_ranges.append(allocator, ResultRange{
                 .start = almanac.seeds.items[i],
                 .length = almanac.seeds.items[i + 1],
             });
@@ -219,18 +219,18 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     }
 
     for (almanac.maps.items) |map| {
-        var new_ranges = std.ArrayList(ResultRange).init(allocator);
-        errdefer new_ranges.deinit();
+        var new_ranges = std.ArrayList(ResultRange).empty;
+        errdefer new_ranges.deinit(allocator);
 
         for (result_ranges.items) |range| {
             var new_ranges_partial = try processRangeThroughhMap(allocator, map, range);
-            defer new_ranges_partial.deinit();
+            defer new_ranges_partial.deinit(allocator);
             for (new_ranges_partial.items) |nr| {
-                try new_ranges.append(nr);
+                try new_ranges.append(allocator, nr);
             }
         }
 
-        result_ranges.deinit();
+        result_ranges.deinit(allocator);
         result_ranges = new_ranges;
     }
 
@@ -249,12 +249,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

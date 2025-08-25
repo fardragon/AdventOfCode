@@ -21,23 +21,23 @@ const Puzzle = struct {
         return y * self.width + x;
     }
 
-    fn deinit(self: *Puzzle) void {
-        self.grid.deinit();
+    fn deinit(self: *Puzzle, allocator: std.mem.Allocator) void {
+        self.grid.deinit(allocator);
     }
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
     var result = Puzzle{
-        .grid = std.ArrayList(u8).init(allocator),
+        .grid = std.ArrayList(u8).empty,
         .width = input[0].len,
         .height = input.len,
         .start = undefined,
         .end = undefined,
     };
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
-        try result.grid.appendSlice(line);
+        try result.grid.appendSlice(allocator, line);
     }
 
     result.start = std.mem.indexOfScalar(u8, result.grid.items[0..result.width], '.').?;
@@ -48,15 +48,15 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
 }
 
 fn findNeighbours(allocator: std.mem.Allocator, puzzle: *const Puzzle, x: usize, y: usize) !std.ArrayList(usize) {
-    var neighbours = std.ArrayList(usize).init(allocator);
-    errdefer neighbours.deinit();
+    var neighbours = std.ArrayList(usize).empty;
+    errdefer neighbours.deinit(allocator);
 
     if (x > 0) {
         const new_x = x - 1;
         const new_y = y;
         const new_index = puzzle.mapToIndex(new_x, new_y);
         if (puzzle.grid.items[new_index] != '#') {
-            try neighbours.append(new_index);
+            try neighbours.append(allocator, new_index);
         }
     }
 
@@ -65,7 +65,7 @@ fn findNeighbours(allocator: std.mem.Allocator, puzzle: *const Puzzle, x: usize,
         const new_y = y;
         const new_index = puzzle.mapToIndex(new_x, new_y);
         if (puzzle.grid.items[new_index] != '#') {
-            try neighbours.append(new_index);
+            try neighbours.append(allocator, new_index);
         }
     }
 
@@ -74,7 +74,7 @@ fn findNeighbours(allocator: std.mem.Allocator, puzzle: *const Puzzle, x: usize,
         const new_y = y - 1;
         const new_index = puzzle.mapToIndex(new_x, new_y);
         if (puzzle.grid.items[new_index] != '#') {
-            try neighbours.append(new_index);
+            try neighbours.append(allocator, new_index);
         }
     }
 
@@ -83,7 +83,7 @@ fn findNeighbours(allocator: std.mem.Allocator, puzzle: *const Puzzle, x: usize,
         const new_y = y + 1;
         const new_index = puzzle.mapToIndex(new_x, new_y);
         if (puzzle.grid.items[new_index] != '#') {
-            try neighbours.append(new_index);
+            try neighbours.append(allocator, new_index);
         }
     }
 
@@ -92,22 +92,25 @@ fn findNeighbours(allocator: std.mem.Allocator, puzzle: *const Puzzle, x: usize,
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     const QueueItem = common.Pair(usize, std.AutoArrayHashMap(usize, void));
 
-    var queue = std.ArrayList(QueueItem).init(allocator);
+    var queue = std.ArrayList(QueueItem).empty;
     defer {
         for (queue.items) |*qitem| {
             qitem.second.deinit();
         }
-        queue.deinit();
+        queue.deinit(allocator);
     }
 
-    try queue.append(QueueItem{
-        .first = puzzle.start,
-        .second = std.AutoArrayHashMap(usize, void).init(allocator),
-    });
+    try queue.append(
+        allocator,
+        QueueItem{
+            .first = puzzle.start,
+            .second = std.AutoArrayHashMap(usize, void).init(allocator),
+        },
+    );
 
     var distance: u64 = 0;
 
@@ -124,28 +127,28 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
             const x = puzzle.mapToX(position);
             const y = puzzle.mapToY(position);
 
-            var new_positions = std.ArrayList(usize).init(allocator);
-            defer new_positions.deinit();
+            var new_positions = std.ArrayList(usize).empty;
+            defer new_positions.deinit(allocator);
             switch (elem) {
                 '>' => {
                     const new_x = x + 1;
                     const new_y = y;
-                    try new_positions.append(puzzle.mapToIndex(new_x, new_y));
+                    try new_positions.append(allocator, puzzle.mapToIndex(new_x, new_y));
                 },
                 '<' => {
                     const new_x = x - 1;
                     const new_y = y;
-                    try new_positions.append(puzzle.mapToIndex(new_x, new_y));
+                    try new_positions.append(allocator, puzzle.mapToIndex(new_x, new_y));
                 },
                 '^' => {
                     const new_x = x;
                     const new_y = y - 1;
-                    try new_positions.append(puzzle.mapToIndex(new_x, new_y));
+                    try new_positions.append(allocator, puzzle.mapToIndex(new_x, new_y));
                 },
                 'v' => {
                     const new_x = x;
                     const new_y = y + 1;
-                    try new_positions.append(puzzle.mapToIndex(new_x, new_y));
+                    try new_positions.append(allocator, puzzle.mapToIndex(new_x, new_y));
                 },
                 '.' => {
                     new_positions = try findNeighbours(allocator, &puzzle, x, y);
@@ -158,7 +161,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                     var new_visited = try visited.clone();
                     errdefer new_visited.deinit();
                     try new_visited.put(np, {});
-                    try queue.append(QueueItem{
+                    try queue.append(allocator, QueueItem{
                         .first = np,
                         .second = new_visited,
                     });
@@ -171,15 +174,15 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn findIntersections(allocator: std.mem.Allocator, puzzle: *const Puzzle) !std.ArrayList(usize) {
-    var intersections = std.ArrayList(usize).init(allocator);
-    errdefer intersections.deinit();
+    var intersections = std.ArrayList(usize).empty;
+    errdefer intersections.deinit(allocator);
 
     for (puzzle.grid.items, 0..) |item, ix| {
         if (item != '#') {
-            const neighbours = try findNeighbours(allocator, puzzle, puzzle.mapToX(ix), puzzle.mapToY(ix));
-            defer neighbours.deinit();
+            var neighbours = try findNeighbours(allocator, puzzle, puzzle.mapToX(ix), puzzle.mapToY(ix));
+            defer neighbours.deinit(allocator);
             if (neighbours.items.len > 2) {
-                try intersections.append(ix);
+                try intersections.append(allocator, ix);
             }
         }
     }
@@ -201,10 +204,10 @@ fn calculateDistances(
 
     const QueueItem = common.Pair(usize, usize);
 
-    var queue = std.ArrayList(QueueItem).init(allocator);
-    defer queue.deinit();
+    var queue = std.ArrayList(QueueItem).empty;
+    defer queue.deinit(allocator);
 
-    try queue.append(QueueItem{ .first = starting_node, .second = 0 });
+    try queue.append(allocator, QueueItem{ .first = starting_node, .second = 0 });
 
     // std.debug.print("BFS from: {d}\n", .{starting_node});
 
@@ -223,12 +226,12 @@ fn calculateDistances(
         }
 
         var neighbours = try findNeighbours(allocator, puzzle, puzzle.mapToX(position), puzzle.mapToY(position));
-        defer neighbours.deinit();
+        defer neighbours.deinit(allocator);
 
         for (neighbours.items) |neighbour| {
             if (!visited.contains(neighbour)) {
                 try visited.put(neighbour, {});
-                try queue.append(QueueItem{ .first = neighbour, .second = distance + 1 });
+                try queue.append(allocator, QueueItem{ .first = neighbour, .second = distance + 1 });
             }
         }
     }
@@ -248,12 +251,12 @@ fn intersectionsDFS(
         visited: std.AutoArrayHashMap(usize, void),
     };
 
-    var queue = std.ArrayList(QueueEntry).init(allocator);
+    var queue = std.ArrayList(QueueEntry).empty;
     defer {
         for (queue.items) |*entry| {
             entry.visited.deinit();
         }
-        queue.deinit();
+        queue.deinit(allocator);
     }
 
     var start_entry = QueueEntry{
@@ -263,7 +266,7 @@ fn intersectionsDFS(
     };
 
     try start_entry.visited.put(start, {});
-    try queue.append(start_entry);
+    try queue.append(allocator, start_entry);
 
     var max_distance: u64 = 0;
 
@@ -289,7 +292,7 @@ fn intersectionsDFS(
                 errdefer new_visited.deinit();
                 try new_visited.put(neighbour, {});
 
-                try queue.append(QueueEntry{
+                try queue.append(allocator, QueueEntry{
                     .current_node = neighbour,
                     .current_distance = new_distance,
                     .visited = new_visited,
@@ -303,13 +306,13 @@ fn intersectionsDFS(
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     var nodes = try findIntersections(allocator, &puzzle);
-    defer nodes.deinit();
+    defer nodes.deinit(allocator);
 
-    try nodes.insert(0, puzzle.start);
-    try nodes.append(puzzle.end);
+    try nodes.insert(allocator, 0, puzzle.start);
+    try nodes.append(allocator, puzzle.end);
 
     // std.debug.print("Nodes: {any}\n", .{nodes.items});
 
@@ -344,12 +347,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

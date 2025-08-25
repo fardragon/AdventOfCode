@@ -14,19 +14,19 @@ const Map = struct {
     start: isize,
     end: isize,
 
-    fn deinit(self: Map) void {
-        self.map.data.deinit();
+    fn deinit(self: *Map, allocator: std.mem.Allocator) void {
+        self.map.data.deinit(allocator);
     }
 };
 
 fn parseMap(allocator: std.mem.Allocator, input: []const []const u8) !Map {
     const expected_width = input[0].len;
 
-    var data = Grid.Container.init(allocator);
-    errdefer data.deinit();
+    var data = Grid.Container.empty;
+    errdefer data.deinit(allocator);
 
-    var instructions = std.ArrayList(Direction).init(allocator);
-    errdefer instructions.deinit();
+    var instructions = std.ArrayList(Direction).empty;
+    errdefer instructions.deinit(allocator);
 
     var start: ?isize = null;
     var end: ?isize = null;
@@ -37,14 +37,14 @@ fn parseMap(allocator: std.mem.Allocator, input: []const []const u8) !Map {
 
         for (line) |char| {
             switch (char) {
-                '.' => try data.append(Field.Empty),
-                '#' => try data.append(Field.Wall),
+                '.' => try data.append(allocator, Field.Empty),
+                '#' => try data.append(allocator, Field.Wall),
                 'S' => {
-                    try data.append(Field.Empty);
+                    try data.append(allocator, Field.Empty);
                     start = @intCast(data.items.len - 1);
                 },
                 'E' => {
-                    try data.append(Field.Empty);
+                    try data.append(allocator, Field.Empty);
                     end = @intCast(data.items.len - 1);
                 },
                 else => return error.MalformedInput,
@@ -145,7 +145,7 @@ fn findMinimalDistance(target: isize, distances: std.AutoHashMap(DistanceKey, u6
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var map = try parseMap(allocator, input);
-    defer map.deinit();
+    defer map.deinit(allocator);
 
     var distances = try calculateDistances(allocator, map.map, &[_]StartCondition{.{ map.start, Direction.Right }});
     defer distances.deinit();
@@ -155,7 +155,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var map = try parseMap(allocator, input);
-    defer map.deinit();
+    defer map.deinit(allocator);
 
     var distances_from_start = try calculateDistances(allocator, map.map, &[_]StartCondition{.{ map.start, Direction.Right }});
     defer distances_from_start.deinit();
@@ -195,12 +195,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

@@ -41,16 +41,19 @@ fn parsePrize(input: []const u8) !struct { isize, isize } {
 }
 
 fn parseMachines(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Machine) {
-    var machines = std.ArrayList(Machine).init(allocator);
-    errdefer machines.deinit();
+    var machines = std.ArrayList(Machine).empty;
+    errdefer machines.deinit(allocator);
 
     var ix: usize = 0;
     while (ix < input.len) {
-        try machines.append(Machine{
-            .button_a = try parseButton(input[ix], 'A'),
-            .button_b = try parseButton(input[ix + 1], 'B'),
-            .prize = try parsePrize(input[ix + 2]),
-        });
+        try machines.append(
+            allocator,
+            Machine{
+                .button_a = try parseButton(input[ix], 'A'),
+                .button_b = try parseButton(input[ix + 1], 'B'),
+                .prize = try parsePrize(input[ix + 2]),
+            },
+        );
 
         ix += 4;
     }
@@ -77,8 +80,8 @@ fn solveMachine(machine: Machine) ?struct { isize, isize } {
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const machines = try parseMachines(allocator, input);
-    defer machines.deinit();
+    var machines = try parseMachines(allocator, input);
+    defer machines.deinit(allocator);
 
     var cost: u64 = 0;
 
@@ -93,8 +96,8 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const machines = try parseMachines(allocator, input);
-    defer machines.deinit();
+    var machines = try parseMachines(allocator, input);
+    defer machines.deinit(allocator);
 
     var cost: u64 = 0;
 
@@ -119,12 +122,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

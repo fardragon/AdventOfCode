@@ -26,9 +26,9 @@ fn Warehouse(GridType: type) type {
         instructions: std.ArrayList(Direction),
 
         const Self = @This();
-        fn deinit(self: Self) void {
-            self.map.data.deinit();
-            self.instructions.deinit();
+        fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            self.map.data.deinit(allocator);
+            self.instructions.deinit(allocator);
         }
     };
 }
@@ -36,11 +36,11 @@ fn Warehouse(GridType: type) type {
 fn parseWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !Warehouse(Grid) {
     const expected_width = input[0].len;
 
-    var data = Grid.Container.init(allocator);
-    errdefer data.deinit();
+    var data = Grid.Container.empty;
+    errdefer data.deinit(allocator);
 
-    var instructions = std.ArrayList(Direction).init(allocator);
-    errdefer instructions.deinit();
+    var instructions = std.ArrayList(Direction).empty;
+    errdefer instructions.deinit(allocator);
 
     var robot: ?isize = null;
     var height: ?usize = null;
@@ -59,11 +59,11 @@ fn parseWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !Ware
 
             for (line) |char| {
                 switch (char) {
-                    '.' => try data.append(Field.Empty),
-                    '#' => try data.append(Field.Wall),
-                    'O' => try data.append(Field.Box),
+                    '.' => try data.append(allocator, Field.Empty),
+                    '#' => try data.append(allocator, Field.Wall),
+                    'O' => try data.append(allocator, Field.Box),
                     '@' => {
-                        try data.append(Field.Empty);
+                        try data.append(allocator, Field.Empty);
                         robot = @intCast(data.items.len - 1);
                     },
                     else => return error.MalformedInput,
@@ -72,10 +72,10 @@ fn parseWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !Ware
         } else {
             for (line) |char| {
                 switch (char) {
-                    '^' => try instructions.append(Direction.Up),
-                    'v' => try instructions.append(Direction.Down),
-                    '<' => try instructions.append(Direction.Left),
-                    '>' => try instructions.append(Direction.Right),
+                    '^' => try instructions.append(allocator, Direction.Up),
+                    'v' => try instructions.append(allocator, Direction.Down),
+                    '<' => try instructions.append(allocator, Direction.Left),
+                    '>' => try instructions.append(allocator, Direction.Right),
                     else => return error.MalformedInput,
                 }
             }
@@ -96,11 +96,11 @@ fn parseWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !Ware
 fn parseWideWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !Warehouse(WideGrid) {
     const expected_width = input[0].len;
 
-    var data = WideGrid.Container.init(allocator);
-    errdefer data.deinit();
+    var data = WideGrid.Container.empty;
+    errdefer data.deinit(allocator);
 
-    var instructions = std.ArrayList(Direction).init(allocator);
-    errdefer instructions.deinit();
+    var instructions = std.ArrayList(Direction).empty;
+    errdefer instructions.deinit(allocator);
 
     var robot: ?isize = null;
     var height: ?usize = null;
@@ -119,14 +119,14 @@ fn parseWideWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !
 
             for (line) |char| {
                 switch (char) {
-                    '.' => try data.appendNTimes(WideField.Empty, 2),
-                    '#' => try data.appendNTimes(WideField.Wall, 2),
+                    '.' => try data.appendNTimes(allocator, WideField.Empty, 2),
+                    '#' => try data.appendNTimes(allocator, WideField.Wall, 2),
                     'O' => {
-                        try data.append(WideField.BoxLeft);
-                        try data.append(WideField.BoxRight);
+                        try data.append(allocator, WideField.BoxLeft);
+                        try data.append(allocator, WideField.BoxRight);
                     },
                     '@' => {
-                        try data.appendNTimes(WideField.Empty, 2);
+                        try data.appendNTimes(allocator, WideField.Empty, 2);
                         robot = @intCast(data.items.len - 2);
                     },
                     else => return error.MalformedInput,
@@ -135,10 +135,10 @@ fn parseWideWarehouse(allocator: std.mem.Allocator, input: []const []const u8) !
         } else {
             for (line) |char| {
                 switch (char) {
-                    '^' => try instructions.append(Direction.Up),
-                    'v' => try instructions.append(Direction.Down),
-                    '<' => try instructions.append(Direction.Left),
-                    '>' => try instructions.append(Direction.Right),
+                    '^' => try instructions.append(allocator, Direction.Up),
+                    'v' => try instructions.append(allocator, Direction.Down),
+                    '<' => try instructions.append(allocator, Direction.Left),
+                    '>' => try instructions.append(allocator, Direction.Right),
                     else => return error.MalformedInput,
                 }
             }
@@ -201,14 +201,14 @@ fn findEmptyWideFieldInHorizontalDirection(grid: WideGrid, start_x: isize, start
 fn findEmptyWideFieldsInVerticalDirection(allocator: std.mem.Allocator, grid: WideGrid, start_x: isize, start_y: isize, dir_y: isize) !?std.ArrayList(common.AutoHashSet(isize)) {
     var cur_y = start_y;
 
-    var boxes_to_move = std.ArrayList(common.AutoHashSet(isize)).init(allocator);
+    var boxes_to_move = std.ArrayList(common.AutoHashSet(isize)).empty;
     errdefer {
         for (boxes_to_move.items) |*level| level.deinit();
-        boxes_to_move.deinit();
+        boxes_to_move.deinit(allocator);
     }
 
     // level 0
-    try boxes_to_move.append(common.AutoHashSet(isize).init(allocator));
+    try boxes_to_move.append(allocator, common.AutoHashSet(isize).init(allocator));
     try boxes_to_move.items[0].put(start_x);
 
     switch (grid.get(start_x, cur_y).?) {
@@ -219,14 +219,14 @@ fn findEmptyWideFieldsInVerticalDirection(allocator: std.mem.Allocator, grid: Wi
 
     while (true) {
         cur_y += dir_y;
-        try boxes_to_move.append(common.AutoHashSet(isize).init(allocator));
+        try boxes_to_move.append(allocator, common.AutoHashSet(isize).init(allocator));
         var it = boxes_to_move.items[boxes_to_move.items.len - 2].iterator();
 
         while (it.next()) |field_x| {
             switch (grid.get(field_x.*, cur_y).?) {
                 WideField.Wall => {
                     for (boxes_to_move.items) |*level| level.deinit();
-                    boxes_to_move.deinit();
+                    boxes_to_move.deinit(allocator);
                     return null;
                 },
                 WideField.Empty => {},
@@ -265,7 +265,7 @@ fn calculate_gps(T: type, grid: common.grid.Grid(T), box_field: T) !u64 {
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var warehouse = try parseWarehouse(allocator, input);
-    defer warehouse.deinit();
+    defer warehouse.deinit(allocator);
 
     var robot_x, var robot_y = try warehouse.map.mapToXY(warehouse.robot);
 
@@ -296,7 +296,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var warehouse = try parseWideWarehouse(allocator, input);
-    defer warehouse.deinit();
+    defer warehouse.deinit(allocator);
 
     var robot_x, var robot_y = try warehouse.map.mapToXY(warehouse.robot);
 
@@ -333,7 +333,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                         if (m_boxes_to_move) |*boxes_to_move| {
                             defer {
                                 for (boxes_to_move.items) |*level| level.deinit();
-                                boxes_to_move.deinit();
+                                boxes_to_move.deinit(allocator);
                             }
 
                             while (boxes_to_move.items.len > 0) {
@@ -367,12 +367,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

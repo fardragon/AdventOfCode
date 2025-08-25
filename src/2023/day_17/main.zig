@@ -19,22 +19,22 @@ const Puzzle = struct {
         return y * self.width + x;
     }
 
-    fn deinit(self: *Puzzle) void {
-        self.grid.deinit();
+    fn deinit(self: *Puzzle, allocator: std.mem.Allocator) void {
+        self.grid.deinit(allocator);
     }
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
     var result = Puzzle{
-        .grid = std.ArrayList(u8).init(allocator),
+        .grid = std.ArrayList(u8).empty,
         .width = input[0].len,
         .height = input.len,
     };
 
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
-        try result.grid.appendSlice(line);
+        try result.grid.appendSlice(allocator, line);
     }
 
     for (result.grid.items) |*item| {
@@ -88,15 +88,15 @@ const StateLoss = struct {
 };
 
 fn nextStates(allocator: std.mem.Allocator, state: State, puzzle: Puzzle, min_straight: u64, max_straight: u64) !std.ArrayList(State) {
-    var result = std.ArrayList(State).init(allocator);
-    errdefer result.deinit();
+    var result = std.ArrayList(State).empty;
+    errdefer result.deinit(allocator);
 
     const pos = state.pos;
     var dir = state.dir;
 
     if (!state.hasTurned and state.steps >= min_straight) {
-        try result.append(State{ .pos = pos, .dir = dir.cw(), .steps = 0, .hasTurned = true });
-        try result.append(State{ .pos = pos, .dir = dir.ccw(), .steps = 0, .hasTurned = true });
+        try result.append(allocator, State{ .pos = pos, .dir = dir.cw(), .steps = 0, .hasTurned = true });
+        try result.append(allocator, State{ .pos = pos, .dir = dir.ccw(), .steps = 0, .hasTurned = true });
     }
     if (state.steps < max_straight) {
         const new_pos: ?Position = switch (dir) {
@@ -107,12 +107,15 @@ fn nextStates(allocator: std.mem.Allocator, state: State, puzzle: Puzzle, min_st
         };
 
         if (new_pos) |np| {
-            try result.append(State{
-                .pos = np,
-                .dir = dir,
-                .steps = state.steps + 1,
-                .hasTurned = false,
-            });
+            try result.append(
+                allocator,
+                State{
+                    .pos = np,
+                    .dir = dir,
+                    .steps = state.steps + 1,
+                    .hasTurned = false,
+                },
+            );
         }
     }
 
@@ -148,7 +151,7 @@ fn solve(allocator: std.mem.Allocator, puzzle: Puzzle, min_straight: u64, max_st
         try seen.put(stateLoss.state, stateLoss.loss);
 
         var nexts = try nextStates(allocator, stateLoss.state, puzzle, min_straight, max_straight);
-        defer nexts.deinit();
+        defer nexts.deinit(allocator);
         for (nexts.items) |state| {
             const loss = puzzle.grid.items[puzzle.mapToIndex(state.pos.first, state.pos.second)];
             const nextLoss = stateLoss.loss + if (state.hasTurned) 0 else loss;
@@ -160,14 +163,14 @@ fn solve(allocator: std.mem.Allocator, puzzle: Puzzle, min_straight: u64, max_st
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     return solve(allocator, puzzle, 0, 3);
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     return solve(allocator, puzzle, 4, 10);
 }
@@ -178,12 +181,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

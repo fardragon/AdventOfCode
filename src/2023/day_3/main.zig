@@ -12,14 +12,14 @@ const Schematic = struct {
     fn init(allocator: std.mem.Allocator, input: []const []const u8) !Self {
         var result = Self{
             .allocator = allocator,
-            .schematic = std.ArrayList(u8).init(allocator),
+            .schematic = std.ArrayList(u8).empty,
             .height = @intCast(input.len),
             .width = @intCast(input[0].len),
         };
 
-        errdefer result.schematic.deinit();
+        errdefer result.schematic.deinit(allocator);
 
-        try result.schematic.ensureTotalCapacity(@intCast(result.height * result.width));
+        try result.schematic.ensureTotalCapacity(result.allocator, @intCast(result.height * result.width));
         for (input) |line| {
             result.schematic.appendSliceAssumeCapacity(line);
         }
@@ -27,8 +27,8 @@ const Schematic = struct {
         return result;
     }
 
-    fn deinit(self: *const Self) void {
-        self.schematic.deinit();
+    fn deinit(self: *Self) void {
+        self.schematic.deinit(self.allocator);
     }
 
     fn isSymbol(char: u8) bool {
@@ -66,8 +66,8 @@ const Schematic = struct {
         var part_adjacent = false;
         var part_number: u16 = 0;
 
-        var result = std.ArrayList(u16).init(allocator);
-        errdefer result.deinit();
+        var result = std.ArrayList(u16).empty;
+        errdefer result.deinit(allocator);
 
         for (self.schematic.items, 0..) |symbol, index| {
             const y: i64 = @intCast(index / self.width);
@@ -76,7 +76,7 @@ const Schematic = struct {
             // handle moving to next line
             if (part_number != 0 and x == 0) {
                 if (part_adjacent) {
-                    try result.append(part_number);
+                    try result.append(allocator, part_number);
                 }
                 part_adjacent = false;
                 part_number = 0;
@@ -89,7 +89,7 @@ const Schematic = struct {
                 }
             } else if (part_number != 0) {
                 if (part_adjacent) {
-                    try result.append(part_number);
+                    try result.append(allocator, part_number);
                 }
                 part_adjacent = false;
                 part_number = 0;
@@ -104,7 +104,7 @@ const Schematic = struct {
         errdefer {
             var it = result.iterator();
             while (it.next()) |entry| {
-                entry.value_ptr.*.deinit();
+                entry.value_ptr.*.deinit(allocator);
             }
             result.deinit();
         }
@@ -120,10 +120,10 @@ const Schematic = struct {
             if (part_number != 0 and x == 0) {
                 if (gear_adjacent) |gear_pos| {
                     if (result.getPtr(gear_pos)) |gear_list| {
-                        try gear_list.append(part_number);
+                        try gear_list.append(allocator, part_number);
                     } else {
-                        try result.put(gear_pos, std.ArrayList(u16).init(allocator));
-                        try result.getPtr(gear_pos).?.append(part_number);
+                        try result.put(gear_pos, std.ArrayList(u16).empty);
+                        try result.getPtr(gear_pos).?.append(allocator, part_number);
                     }
                 }
                 gear_adjacent = null;
@@ -144,10 +144,10 @@ const Schematic = struct {
             } else if (part_number != 0) {
                 if (gear_adjacent) |gear_pos| {
                     if (result.getPtr(gear_pos)) |gear_list| {
-                        try gear_list.append(part_number);
+                        try gear_list.append(allocator, part_number);
                     } else {
-                        try result.put(gear_pos, std.ArrayList(u16).init(allocator));
-                        try result.getPtr(gear_pos).?.append(part_number);
+                        try result.put(gear_pos, std.ArrayList(u16).empty);
+                        try result.getPtr(gear_pos).?.append(allocator, part_number);
                     }
                 }
                 gear_adjacent = null;
@@ -160,11 +160,11 @@ const Schematic = struct {
 };
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const schematic = try Schematic.init(allocator, input);
+    var schematic = try Schematic.init(allocator, input);
     defer schematic.deinit();
 
-    const parts = try schematic.getPartsList(allocator);
-    defer parts.deinit();
+    var parts = try schematic.getPartsList(allocator);
+    defer parts.deinit(allocator);
 
     var result: u64 = 0;
 
@@ -176,14 +176,14 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const schematic = try Schematic.init(allocator, input);
+    var schematic = try Schematic.init(allocator, input);
     defer schematic.deinit();
 
     var gears = try schematic.getGears(allocator);
     defer {
         var it = gears.iterator();
         while (it.next()) |entry| {
-            entry.value_ptr.*.deinit();
+            entry.value_ptr.*.deinit(allocator);
         }
         gears.deinit();
     }
@@ -207,12 +207,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

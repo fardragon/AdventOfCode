@@ -8,12 +8,12 @@ const Equation = struct {
 };
 
 fn parseEquations(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Equation) {
-    var equations = std.ArrayList(Equation).init(allocator);
+    var equations = std.ArrayList(Equation).empty;
     errdefer {
-        for (equations.items) |eq| {
-            eq.numbers.deinit();
+        for (equations.items) |*eq| {
+            eq.numbers.deinit(allocator);
         }
-        equations.deinit();
+        equations.deinit(allocator);
     }
 
     var target: ?u64 = null;
@@ -22,10 +22,11 @@ fn parseEquations(allocator: std.mem.Allocator, input: []const []const u8) !std.
         var target_split = std.mem.splitScalar(u8, line, ':');
 
         target = try std.fmt.parseInt(u64, target_split.next().?, 10);
-        const numbers = try common.parsing.parseNumbers(u64, allocator, target_split.next().?[1..], ' ');
-        errdefer numbers.deinit();
+        var numbers = try common.parsing.parseNumbers(u64, allocator, target_split.next().?[1..], ' ');
+        errdefer numbers.deinit(allocator);
 
         try equations.append(
+            allocator,
             Equation{
                 .target = target.?,
                 .numbers = numbers,
@@ -37,12 +38,12 @@ fn parseEquations(allocator: std.mem.Allocator, input: []const []const u8) !std.
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const equations = try parseEquations(allocator, input);
+    var equations = try parseEquations(allocator, input);
     defer {
-        for (equations.items) |eq| {
-            eq.numbers.deinit();
+        for (equations.items) |*eq| {
+            eq.numbers.deinit(allocator);
         }
-        equations.deinit();
+        equations.deinit(allocator);
     }
 
     var solution: u64 = 0;
@@ -81,12 +82,12 @@ fn getTernarySymbol(digit: usize, position: usize) !usize {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const equations = try parseEquations(allocator, input);
+    var equations = try parseEquations(allocator, input);
     defer {
-        for (equations.items) |eq| {
-            eq.numbers.deinit();
+        for (equations.items) |*eq| {
+            eq.numbers.deinit(allocator);
         }
-        equations.deinit();
+        equations.deinit(allocator);
     }
 
     var solution: u64 = 0;
@@ -132,12 +133,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

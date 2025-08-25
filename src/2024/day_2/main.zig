@@ -2,31 +2,31 @@ const std = @import("std");
 const common_input = @import("common").input;
 
 fn parseReport(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(i64) {
-    var result = std.ArrayList(i64).init(allocator);
+    var result = std.ArrayList(i64).empty;
 
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     var split = std.mem.splitScalar(u8, input, ' ');
 
     while (split.next()) |number| {
-        try result.append(try std.fmt.parseInt(i64, number, 10));
+        try result.append(allocator, try std.fmt.parseInt(i64, number, 10));
     }
 
     return result;
 }
 
 fn parseReports(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(std.ArrayList(i64)) {
-    var reports = std.ArrayList(std.ArrayList(i64)).init(allocator);
+    var reports = std.ArrayList(std.ArrayList(i64)).empty;
 
     errdefer {
-        for (reports.items) |report| {
-            report.deinit();
+        for (reports.items) |*report| {
+            report.deinit(allocator);
         }
-        reports.deinit();
+        reports.deinit(allocator);
     }
 
     for (input) |line| {
-        try reports.append(try parseReport(allocator, line));
+        try reports.append(allocator, try parseReport(allocator, line));
     }
 
     return reports;
@@ -51,14 +51,14 @@ fn validateReport(report: std.ArrayList(i64)) !bool {
     return true;
 }
 
-fn validateReportWithDampening(report: std.ArrayList(i64)) !bool {
+fn validateReportWithDampening(allocator: std.mem.Allocator, report: std.ArrayList(i64)) !bool {
     if (try validateReport(report)) {
         return true;
     }
 
     for (0..report.items.len) |ix| {
-        var dampened_report = try report.clone();
-        defer dampened_report.deinit();
+        var dampened_report = try report.clone(allocator);
+        defer dampened_report.deinit(allocator);
         _ = dampened_report.orderedRemove(ix);
 
         if (try validateReport(dampened_report)) {
@@ -70,12 +70,12 @@ fn validateReportWithDampening(report: std.ArrayList(i64)) !bool {
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const reports = try parseReports(allocator, input);
+    var reports = try parseReports(allocator, input);
     defer {
-        for (reports.items) |report| {
-            report.deinit();
+        for (reports.items) |*report| {
+            report.deinit(allocator);
         }
-        reports.deinit();
+        reports.deinit(allocator);
     }
 
     var valid_reports: u64 = 0;
@@ -90,18 +90,18 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const reports = try parseReports(allocator, input);
+    var reports = try parseReports(allocator, input);
     defer {
-        for (reports.items) |report| {
-            report.deinit();
+        for (reports.items) |*report| {
+            report.deinit(allocator);
         }
-        reports.deinit();
+        reports.deinit(allocator);
     }
 
     var valid_reports: u64 = 0;
 
     for (reports.items) |report| {
-        if (try validateReportWithDampening(report)) {
+        if (try validateReportWithDampening(allocator, report)) {
             valid_reports += 1;
         }
     }
@@ -115,12 +115,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

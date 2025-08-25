@@ -175,7 +175,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) ![]u8 {
 
     // collect zi gates
     var z_gates = try std.ArrayList([3]u8).initCapacity(allocator, 64);
-    defer z_gates.deinit();
+    defer z_gates.deinit(allocator);
 
     for (0..64) |zi| {
         var buf: [3]u8 = undefined;
@@ -283,12 +283,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

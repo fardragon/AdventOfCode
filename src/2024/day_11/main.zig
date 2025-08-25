@@ -4,14 +4,14 @@ const CacheKeyType = struct { u64, usize };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(u64) {
     if (input.len != 1) return error.MalformedInput;
-    var stones = std.ArrayList(u64).init(allocator);
+    var stones = std.ArrayList(u64).empty;
 
-    errdefer stones.deinit();
+    errdefer stones.deinit(allocator);
 
     var split = std.mem.splitScalar(u8, input[0], ' ');
 
     while (split.next()) |number| {
-        try stones.append(try std.fmt.parseInt(u64, number, 10));
+        try stones.append(allocator, try std.fmt.parseInt(u64, number, 10));
     }
 
     return stones;
@@ -55,15 +55,15 @@ fn blink(allocator: std.mem.Allocator, stones: []const u64, blinks: u64) !u64 {
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const stones = try parseInput(allocator, input);
-    defer stones.deinit();
+    var stones = try parseInput(allocator, input);
+    defer stones.deinit(allocator);
 
     return try blink(allocator, stones.items, 25);
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const stones = try parseInput(allocator, input);
-    defer stones.deinit();
+    var stones = try parseInput(allocator, input);
+    defer stones.deinit(allocator);
 
     return try blink(allocator, stones.items, 75);
 }
@@ -74,12 +74,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

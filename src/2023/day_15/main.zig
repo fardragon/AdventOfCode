@@ -14,13 +14,13 @@ const Spring = struct {
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(String) {
-    var result = std.ArrayList(String).init(allocator);
+    var result = std.ArrayList(String).empty;
 
     errdefer {
         for (result.items) |*string| {
             string.deinit();
         }
-        result.deinit();
+        result.deinit(allocator);
     }
 
     if (input.len != 1) @panic("Invalid input");
@@ -31,7 +31,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Arra
         var str = try String.init(allocator, part);
         errdefer str.deinit();
 
-        try result.append(str);
+        try result.append(allocator, str);
     }
 
     return result;
@@ -54,7 +54,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         for (strings.items) |*string| {
             string.deinit();
         }
-        strings.deinit();
+        strings.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -112,19 +112,19 @@ const Box = struct {
 
     fn init(allocator: std.mem.Allocator) Box {
         return Box{
-            .entries = std.ArrayList(BoxEntry).init(allocator),
+            .entries = std.ArrayList(BoxEntry).empty,
             .allocator = allocator,
         };
     }
 
-    fn deinit(self: *Box) void {
+    fn deinit(self: *Box, allocator: std.mem.Allocator) void {
         for (self.entries.items) |entry| {
             self.allocator.free(entry.label);
         }
-        self.entries.deinit();
+        self.entries.deinit(allocator);
     }
 
-    fn addLens(self: *Box, label: []const u8, lens: u8) !void {
+    fn addLens(self: *Box, allocator: std.mem.Allocator, label: []const u8, lens: u8) !void {
         var replaced_existing = false;
         for (self.entries.items) |*entry| {
             if (std.mem.eql(u8, entry.*.label, label)) {
@@ -135,10 +135,13 @@ const Box = struct {
         }
 
         if (!replaced_existing) {
-            try self.entries.append(BoxEntry{
-                .label = try self.allocator.dupe(u8, label),
-                .lens = lens,
-            });
+            try self.entries.append(
+                allocator,
+                BoxEntry{
+                    .label = try self.allocator.dupe(u8, label),
+                    .lens = lens,
+                },
+            );
         }
     }
 
@@ -177,7 +180,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         for (strings.items) |*string| {
             string.deinit();
         }
-        strings.deinit();
+        strings.deinit(allocator);
     }
 
     var boxes: [256]Box = undefined;
@@ -186,7 +189,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     }
 
     defer {
-        for (&boxes) |*box| box.deinit();
+        for (&boxes) |*box| box.deinit(allocator);
     }
 
     for (strings.items) |str| {
@@ -195,7 +198,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
         switch (instruction.action) {
             Action.add => |lens| {
-                try boxes[instruction.box].addLens(instruction.label, lens);
+                try boxes[instruction.box].addLens(allocator, instruction.label, lens);
             },
             Action.remove => boxes[instruction.box].removeLens(instruction.label),
         }
@@ -215,12 +218,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

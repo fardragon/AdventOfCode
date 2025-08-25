@@ -19,22 +19,22 @@ const Puzzle = struct {
         return y * self.width + x;
     }
 
-    fn deinit(self: *Puzzle) void {
-        self.grid.deinit();
+    fn deinit(self: *Puzzle, allocator: std.mem.Allocator) void {
+        self.grid.deinit(allocator);
     }
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
     var result = Puzzle{
-        .grid = std.ArrayList(u8).init(allocator),
+        .grid = std.ArrayList(u8).empty,
         .width = input[0].len,
         .height = input.len,
     };
 
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
-        try result.grid.appendSlice(line);
+        try result.grid.appendSlice(allocator, line);
     }
 
     return result;
@@ -200,10 +200,10 @@ fn step(puzzle: Puzzle, current_state: BeamState) BeamResult {
 }
 
 fn solve(allocator: std.mem.Allocator, puzzle: Puzzle, initial_beam: BeamState) !u64 {
-    var beams = std.ArrayList(BeamState).init(allocator);
-    defer beams.deinit();
+    var beams = std.ArrayList(BeamState).empty;
+    defer beams.deinit(allocator);
 
-    try beams.append(initial_beam);
+    try beams.append(allocator, initial_beam);
 
     var cache = std.AutoHashMap(BeamState, void).init(allocator);
     defer cache.deinit();
@@ -211,8 +211,8 @@ fn solve(allocator: std.mem.Allocator, puzzle: Puzzle, initial_beam: BeamState) 
     while (true) {
         if (beams.items.len == 0) break;
 
-        var new_beams = std.ArrayList(BeamState).init(allocator);
-        errdefer new_beams.deinit();
+        var new_beams = std.ArrayList(BeamState).empty;
+        errdefer new_beams.deinit(allocator);
 
         for (beams.items) |beam| {
             if (cache.contains(beam)) {
@@ -224,15 +224,15 @@ fn solve(allocator: std.mem.Allocator, puzzle: Puzzle, initial_beam: BeamState) 
             const result = step(puzzle, beam);
 
             if (result.first) |new_beam| {
-                try new_beams.append(new_beam);
+                try new_beams.append(allocator, new_beam);
             }
 
             if (result.second) |new_beam| {
-                try new_beams.append(new_beam);
+                try new_beams.append(allocator, new_beam);
             }
         }
 
-        beams.deinit();
+        beams.deinit(allocator);
         beams = new_beams;
     }
 
@@ -251,14 +251,14 @@ fn solve(allocator: std.mem.Allocator, puzzle: Puzzle, initial_beam: BeamState) 
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     return solve(allocator, puzzle, BeamState{ .position = 0, .direction = .right });
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     var max_energy: u64 = 0;
 
@@ -301,12 +301,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

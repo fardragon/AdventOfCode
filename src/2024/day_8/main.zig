@@ -12,16 +12,16 @@ const Grid = common.grid.Grid(Field);
 fn parseMap(allocator: std.mem.Allocator, input: []const []const u8) !Grid {
     const expected_width = input[0].len;
 
-    var data = Grid.Container.init(allocator);
-    errdefer data.deinit();
+    var data = Grid.Container.empty;
+    errdefer data.deinit(allocator);
 
     for (input) |line| {
         if (line.len != expected_width) return error.MalformedInput;
 
         for (line) |char| {
             switch (char) {
-                '.' => try data.append(Field.Empty),
-                else => try data.append(Field{ .Antenna = char }),
+                '.' => try data.append(allocator, Field.Empty),
+                else => try data.append(allocator, Field{ .Antenna = char }),
             }
         }
     }
@@ -34,8 +34,8 @@ fn parseMap(allocator: std.mem.Allocator, input: []const []const u8) !Grid {
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const map = try parseMap(allocator, input);
-    defer map.data.deinit();
+    var map = try parseMap(allocator, input);
+    defer map.data.deinit(allocator);
 
     var antinodes = std.AutoHashMap(isize, void).init(allocator);
     defer antinodes.deinit();
@@ -76,8 +76,8 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const map = try parseMap(allocator, input);
-    defer map.data.deinit();
+    var map = try parseMap(allocator, input);
+    defer map.data.deinit(allocator);
 
     var antinodes = std.AutoHashMap(isize, void).init(allocator);
     defer antinodes.deinit();
@@ -134,12 +134,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

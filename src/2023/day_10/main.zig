@@ -22,18 +22,16 @@ const Puzzle = struct {
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
     var result = Puzzle{
-        .pipes = std.ArrayList(u8).init(allocator),
+        .pipes = std.ArrayList(u8).empty,
         .width = input[0].len,
         .height = input.len,
         .starting_point = undefined,
     };
 
-    errdefer {
-        result.pipes.deinit();
-    }
+    errdefer result.pipes.deinit(allocator);
 
     for (input) |line| {
-        try result.pipes.appendSlice(line);
+        try result.pipes.appendSlice(allocator, line);
     }
 
     // find and replace starting position
@@ -168,7 +166,7 @@ fn step(puzzle: Puzzle, position: usize, direction: Direction) StepResult {
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.pipes.deinit();
+    defer puzzle.pipes.deinit(allocator);
 
     var steps: u64 = 0;
 
@@ -191,7 +189,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.pipes.deinit();
+    defer puzzle.pipes.deinit(allocator);
 
     // pick starting direction
     var direction = pickStartingDirection(puzzle);
@@ -249,12 +247,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

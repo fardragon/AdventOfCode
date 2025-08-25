@@ -25,7 +25,7 @@ fn getEmptyGrid(allocator: std.mem.Allocator, width: usize, height: usize) !Grid
 
 fn parseBytes(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Byte) {
     var bytes = try std.ArrayList(Byte).initCapacity(allocator, input.len);
-    errdefer bytes.deinit();
+    errdefer bytes.deinit(allocator);
 
     for (input) |line| {
         var split = std.mem.splitScalar(u8, line, ',');
@@ -93,10 +93,10 @@ fn calculateDistances(allocator: std.mem.Allocator, map: Grid, start_position: i
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, width: usize, height: usize, bytes_num: usize) !u64 {
     var map = try getEmptyGrid(allocator, width, height);
-    defer map.data.deinit();
+    defer map.data.deinit(allocator);
 
-    const bytes = try parseBytes(allocator, input);
-    defer bytes.deinit();
+    var bytes = try parseBytes(allocator, input);
+    defer bytes.deinit(allocator);
 
     for (bytes.items[0..bytes_num]) |byte| {
         try map.set(byte.first, byte.second, Field.Byte);
@@ -110,10 +110,10 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, width: us
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8, width: usize, height: usize, bytes_num: usize) !u64 {
     var map = try getEmptyGrid(allocator, width, height);
-    defer map.data.deinit();
+    defer map.data.deinit(allocator);
 
-    const bytes = try parseBytes(allocator, input);
-    defer bytes.deinit();
+    var bytes = try parseBytes(allocator, input);
+    defer bytes.deinit(allocator);
 
     for (bytes.items[0..bytes_num]) |byte| {
         try map.set(byte.first, byte.second, Field.Byte);
@@ -139,12 +139,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items, 71, 71, 1024)});

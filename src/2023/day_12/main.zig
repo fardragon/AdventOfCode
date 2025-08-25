@@ -6,20 +6,20 @@ const Spring = struct {
     pattern: common.String,
     numbers: std.ArrayList(u8),
 
-    fn deinit(self: *Spring) void {
+    fn deinit(self: *Spring, allocator: std.mem.Allocator) void {
         self.pattern.deinit();
-        self.numbers.deinit();
+        self.numbers.deinit(allocator);
     }
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Spring) {
-    var result = std.ArrayList(Spring).init(allocator);
+    var result = std.ArrayList(Spring).empty;
 
     errdefer {
         for (result.items) |*spring| {
-            spring.deinit();
+            spring.deinit(allocator);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
 
     for (input) |line| {
@@ -27,18 +27,21 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Arra
         var pattern = try common.String.init(allocator, it.first());
         errdefer pattern.deinit();
 
-        var numbers = std.ArrayList(u8).init(allocator);
-        errdefer numbers.deinit();
+        var numbers = std.ArrayList(u8).empty;
+        errdefer numbers.deinit(allocator);
         var numbers_it = std.mem.splitScalar(u8, it.next().?, ',');
 
         while (numbers_it.next()) |number_str| {
-            try numbers.append(try std.fmt.parseUnsigned(u8, number_str, 10));
+            try numbers.append(allocator, try std.fmt.parseUnsigned(u8, number_str, 10));
         }
 
-        try result.append(Spring{
-            .pattern = pattern,
-            .numbers = numbers,
-        });
+        try result.append(
+            allocator,
+            Spring{
+                .pattern = pattern,
+                .numbers = numbers,
+            },
+        );
     }
 
     return result;
@@ -197,8 +200,8 @@ fn solve(allocator: std.mem.Allocator, input: std.ArrayList(Spring)) !u64 {
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var springs = try parseInput(allocator, input);
     defer {
-        for (springs.items) |*spring| spring.deinit();
-        springs.deinit();
+        for (springs.items) |*spring| spring.deinit(allocator);
+        springs.deinit(allocator);
     }
     return solve(allocator, springs);
 }
@@ -206,15 +209,15 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var springs = try parseInput(allocator, input);
     defer {
-        for (springs.items) |*spring| spring.deinit();
-        springs.deinit();
+        for (springs.items) |*spring| spring.deinit(allocator);
+        springs.deinit(allocator);
     }
 
     //unfold input
-    var unfolded_springs = std.ArrayList(Spring).init(allocator);
+    var unfolded_springs = std.ArrayList(Spring).empty;
     defer {
-        for (unfolded_springs.items) |*spring| spring.deinit();
-        unfolded_springs.deinit();
+        for (unfolded_springs.items) |*spring| spring.deinit(allocator);
+        unfolded_springs.deinit(allocator);
     }
 
     for (springs.items) |spring| {
@@ -225,17 +228,20 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         );
         defer allocator.free(new_pattern);
 
-        var new_numbers = std.ArrayList(u8).init(allocator);
-        errdefer new_numbers.deinit();
+        var new_numbers = std.ArrayList(u8).empty;
+        errdefer new_numbers.deinit(allocator);
 
         for (0..5) |_| {
-            try new_numbers.appendSlice(spring.numbers.items);
+            try new_numbers.appendSlice(allocator, spring.numbers.items);
         }
 
-        try unfolded_springs.append(Spring{
-            .pattern = try common.String.init(allocator, new_pattern),
-            .numbers = new_numbers,
-        });
+        try unfolded_springs.append(
+            allocator,
+            Spring{
+                .pattern = try common.String.init(allocator, new_pattern),
+                .numbers = new_numbers,
+            },
+        );
     }
 
     return solve(allocator, unfolded_springs);
@@ -247,12 +253,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

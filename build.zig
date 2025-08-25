@@ -3,24 +3,34 @@ const std = @import("std");
 fn buildDay(
     b: *std.Build,
     target: *const std.Build.ResolvedTarget,
-    optimize_options: *const std.builtin.Mode,
+    optimize_options: *const std.builtin.OptimizeMode,
     common_module: *std.Build.Module,
     all_tests_step: *std.Build.Step,
+    check_step: *std.Build.Step,
     comptime year: []const u8,
     comptime name: []const u8,
 ) void {
     const path = "src/" ++ year ++ "/" ++ name;
     const full_name = year ++ "_" ++ name;
 
-    const exe = b.addExecutable(.{
-        .name = full_name,
+    const module = b.createModule(.{
         .root_source_file = b.path(path ++ "/main.zig"),
         .target = target.*,
         .optimize = optimize_options.*,
     });
-    exe.root_module.addImport("common", common_module);
+    module.addImport("common", common_module);
 
+    const exe = b.addExecutable(.{
+        .name = full_name,
+        .root_module = module,
+    });
     b.installArtifact(exe);
+
+    const exe_check = b.addExecutable(.{
+        .name = full_name,
+        .root_module = module,
+    });
+    check_step.dependOn(&exe_check.step);
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
@@ -33,11 +43,9 @@ fn buildDay(
     run_step.dependOn(&run_cmd.step);
 
     const unit_tests = b.addTest(.{
-        .root_source_file = b.path(path ++ "/main.zig"),
-        .target = target.*,
-        .optimize = optimize_options.*,
+        .root_module = module,
+        .name = "test_" ++ year ++ "_" ++ name,
     });
-    unit_tests.root_module.addImport("common", common_module);
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
     run_unit_tests.cwd = b.path(path);
@@ -50,21 +58,24 @@ fn buildDay(
 fn buildYear(
     b: *std.Build,
     target: *const std.Build.ResolvedTarget,
-    optimize_options: *const std.builtin.Mode,
+    optimize_options: *const std.builtin.OptimizeMode,
     common_module: *std.Build.Module,
     all_tests_step: *std.Build.Step,
+    check_step: *std.Build.Step,
     comptime year: u16,
     comptime days: u8,
 ) void {
-    const year_buf = std.fmt.comptimePrint("{}", .{year});
+    @setEvalBranchQuota(5_000);
+    const year_buf = std.fmt.comptimePrint("{d}", .{year});
     inline for (1..(days + 1)) |day| {
-        const day_buf = std.fmt.comptimePrint("{}", .{day});
+        const day_buf = std.fmt.comptimePrint("{d}", .{day});
         buildDay(
             b,
             target,
             optimize_options,
             common_module,
             all_tests_step,
+            check_step,
             year_buf,
             "day_" ++ day_buf,
         );
@@ -80,7 +91,8 @@ pub fn build(b: *std.Build) void {
     });
 
     const run_all_tests_step = b.step("test", "Run all tests");
+    const check_step = b.step("check", "Build on save check");
 
-    buildYear(b, &target, &optimize, common_module, run_all_tests_step, 2023, 25);
-    buildYear(b, &target, &optimize, common_module, run_all_tests_step, 2024, 25);
+    buildYear(b, &target, &optimize, common_module, run_all_tests_step, check_step, 2023, 25);
+    buildYear(b, &target, &optimize, common_module, run_all_tests_step, check_step, 2024, 25);
 }

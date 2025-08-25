@@ -11,11 +11,11 @@ const Pulse = struct {
 
 const BroadcastBehaviour = struct {
     fn pulse(allocator: std.mem.Allocator, new_source: []const u8, level: bool, targets: []const []const u8) !std.ArrayList(Pulse) {
-        var result = std.ArrayList(Pulse).init(allocator);
-        errdefer result.deinit();
+        var result = std.ArrayList(Pulse).empty;
+        errdefer result.deinit(allocator);
 
         for (targets) |target| {
-            try result.append(Pulse{
+            try result.append(allocator, Pulse{
                 .source = new_source,
                 .level = level,
                 .destination = target,
@@ -30,18 +30,21 @@ const FlipFlopBehaviour = struct {
     level: bool = false,
 
     fn pulse(self: *FlipFlopBehaviour, allocator: std.mem.Allocator, new_source: []const u8, level: bool, targets: []const []const u8) !std.ArrayList(Pulse) {
-        var result = std.ArrayList(Pulse).init(allocator);
-        errdefer result.deinit();
+        var result = std.ArrayList(Pulse).empty;
+        errdefer result.deinit(allocator);
 
         if (!level) {
             self.level = !self.level;
 
             for (targets) |target| {
-                try result.append(Pulse{
-                    .source = new_source,
-                    .level = self.level,
-                    .destination = target,
-                });
+                try result.append(
+                    allocator,
+                    Pulse{
+                        .source = new_source,
+                        .level = self.level,
+                        .destination = target,
+                    },
+                );
             }
         }
 
@@ -54,8 +57,8 @@ const ConjunctionBehaviour = struct {
     hash: std.bit_set.IntegerBitSet(64) = std.bit_set.IntegerBitSet(64).initEmpty(),
 
     fn pulse(self: *ConjunctionBehaviour, allocator: std.mem.Allocator, source: []const u8, new_source: []const u8, level: bool, targets: []const []const u8) !std.ArrayList(Pulse) {
-        var result = std.ArrayList(Pulse).init(allocator);
-        errdefer result.deinit();
+        var result = std.ArrayList(Pulse).empty;
+        errdefer result.deinit(allocator);
 
         try self.sources.put(source, level);
         if (level) {
@@ -68,11 +71,14 @@ const ConjunctionBehaviour = struct {
         }
 
         for (targets) |target| {
-            try result.append(Pulse{
-                .source = new_source,
-                .level = !all_high,
-                .destination = target,
-            });
+            try result.append(
+                allocator,
+                Pulse{
+                    .source = new_source,
+                    .level = !all_high,
+                    .destination = target,
+                },
+            );
         }
 
         return result;
@@ -96,10 +102,11 @@ const OutputBehaviour = struct {
     counter: u64 = 0,
 
     fn pulse(self: *OutputBehaviour, allocator: std.mem.Allocator, level: bool) !std.ArrayList(Pulse) {
+        _ = allocator; // autofix
         if (!level) {
             self.counter += 1;
         }
-        return std.ArrayList(Pulse).init(allocator);
+        return std.ArrayList(Pulse).empty;
     }
 };
 
@@ -114,8 +121,8 @@ const Module = struct {
     targets: std.ArrayList([]const u8),
     behaviour: ModuleBehaviour,
 
-    fn deinit(self: *Module) void {
-        self.targets.deinit();
+    fn deinit(self: *Module, allocator: std.mem.Allocator) void {
+        self.targets.deinit(allocator);
 
         switch (self.behaviour) {
             .broadcast => {},
@@ -132,7 +139,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Stri
     var result = std.StringArrayHashMap(Module).init(allocator);
     errdefer {
         for (result.values()) |*module| {
-            module.deinit();
+            module.deinit(allocator);
         }
         result.deinit();
     }
@@ -142,14 +149,14 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Stri
 
         var name = it.first();
 
-        var outputs = std.ArrayList([]const u8).init(allocator);
-        errdefer outputs.deinit();
+        var outputs = std.ArrayList([]const u8).empty;
+        errdefer outputs.deinit(allocator);
 
         var outputs_it = std.mem.splitSequence(u8, it.next().?, ", ");
 
         while (outputs_it.next()) |o| {
             if (o[0] == ' ') @panic("Parsing error");
-            try outputs.append(o);
+            try outputs.append(allocator, o);
         }
 
         if (std.mem.eql(u8, name, "broadcaster")) {
@@ -180,7 +187,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Stri
                 }
             } else {
                 try result.putNoClobber(output_name, Module{
-                    .targets = std.ArrayList([]const u8).init(allocator),
+                    .targets = std.ArrayList([]const u8).empty,
                     .behaviour = ModuleBehaviour{ .output = OutputBehaviour{} },
                 });
             }
@@ -195,14 +202,17 @@ const PushResult = common.Pair(u64, u64);
 fn pushButton(allocator: std.mem.Allocator, modules: *std.StringArrayHashMap(Module)) !PushResult {
     var result = PushResult{ .first = 0, .second = 0 };
 
-    var pulses = std.ArrayList(Pulse).init(allocator);
-    defer pulses.deinit();
+    var pulses = std.ArrayList(Pulse).empty;
+    defer pulses.deinit(allocator);
 
-    try pulses.append(Pulse{
-        .source = "button",
-        .level = false,
-        .destination = "broadcaster",
-    });
+    try pulses.append(
+        allocator,
+        Pulse{
+            .source = "button",
+            .level = false,
+            .destination = "broadcaster",
+        },
+    );
 
     while (pulses.items.len > 0) {
         const pulse = pulses.orderedRemove(0);
@@ -221,9 +231,9 @@ fn pushButton(allocator: std.mem.Allocator, modules: *std.StringArrayHashMap(Mod
             .conjunction => |*behaviour| try behaviour.pulse(allocator, pulse.source, pulse.destination, pulse.level, module.*.targets.items),
             .output => |*behaviour| try behaviour.pulse(allocator, pulse.level),
         };
-        defer new_pulses.deinit();
+        defer new_pulses.deinit(allocator);
 
-        try pulses.appendSlice(new_pulses.items);
+        try pulses.appendSlice(allocator, new_pulses.items);
     }
     return result;
 }
@@ -232,7 +242,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var modules = try parseInput(allocator, input);
     defer {
         for (modules.values()) |*module| {
-            module.deinit();
+            module.deinit(allocator);
         }
         modules.deinit();
     }
@@ -254,7 +264,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var modules = try parseInput(allocator, input);
     defer {
         for (modules.values()) |*module| {
-            module.deinit();
+            module.deinit(allocator);
         }
         modules.deinit();
     }
@@ -306,12 +316,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

@@ -4,71 +4,70 @@ const common_input = @import("common").input;
 const Report = std.ArrayList(i64);
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Report) {
-    var result = std.ArrayList(Report).init(allocator);
+    var result = std.ArrayList(Report).empty;
     errdefer {
-        for (result.items) |report| {
-            report.deinit();
+        for (result.items) |*report| {
+            report.deinit(allocator);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
 
     for (input) |line| {
         var it = std.mem.splitScalar(u8, line, ' ');
 
-        var report = Report.init(allocator);
-        errdefer {
-            report.deinit();
-        }
+        var report = Report.empty;
+        errdefer report.deinit(allocator);
+
         while (it.next()) |n| {
             const num = try std.fmt.parseInt(i64, n, 10);
-            try report.append(num);
+            try report.append(allocator, num);
         }
 
-        try result.append(report);
+        try result.append(allocator, report);
     }
 
     return result;
 }
 
 fn extendReport(allocator: std.mem.Allocator, report: Report) !i64 {
-    var extensions = std.ArrayList(Report).init(allocator);
+    var extensions = std.ArrayList(Report).empty;
     defer {
-        for (extensions.items) |r| {
-            r.deinit();
+        for (extensions.items) |*r| {
+            r.deinit(allocator);
         }
-        extensions.deinit();
+        extensions.deinit(allocator);
     }
 
-    try extensions.append(try report.clone());
+    try extensions.append(allocator, try report.clone(allocator));
 
     // extend
     while (true) {
-        var new_extenstion = Report.init(allocator);
-        errdefer new_extenstion.deinit();
+        var new_extenstion = Report.empty;
+        errdefer new_extenstion.deinit(allocator);
 
         const last_extension = extensions.getLast();
         var all_zeroes = true;
         for (1..last_extension.items.len) |ix| {
             const new_val = last_extension.items[ix] - last_extension.items[ix - 1];
-            try new_extenstion.append(new_val);
+            try new_extenstion.append(allocator, new_val);
 
             if (new_val != 0) all_zeroes = false;
         }
 
-        try extensions.append(new_extenstion);
+        try extensions.append(allocator, new_extenstion);
 
         if (all_zeroes) break;
     }
 
     //extrapolate
-    try extensions.items[extensions.items.len - 1].append(0);
+    try extensions.items[extensions.items.len - 1].append(allocator, 0);
     for (2..extensions.items.len + 1) |offset| {
         const target_ix = extensions.items.len - offset;
         const source_ix = extensions.items.len - offset + 1;
 
         const new_val = extensions.items[target_ix].getLast() + extensions.items[source_ix].getLast();
 
-        try extensions.items[target_ix].append(new_val);
+        try extensions.items[target_ix].append(allocator, new_val);
     }
 
     return extensions.items[0].getLast();
@@ -77,10 +76,10 @@ fn extendReport(allocator: std.mem.Allocator, report: Report) !i64 {
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !i64 {
     var reports = try parseInput(allocator, input);
     defer {
-        for (reports.items) |report| {
-            report.deinit();
+        for (reports.items) |*report| {
+            report.deinit(allocator);
         }
-        reports.deinit();
+        reports.deinit(allocator);
     }
     var result: i64 = 0;
 
@@ -94,22 +93,22 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !i64 {
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !i64 {
     var reports = try parseInput(allocator, input);
     defer {
-        for (reports.items) |report| {
-            report.deinit();
+        for (reports.items) |*report| {
+            report.deinit(allocator);
         }
-        reports.deinit();
+        reports.deinit(allocator);
     }
     var result: i64 = 0;
 
     for (reports.items) |report| {
-        var reversed_report = Report.init(allocator);
-        defer reversed_report.deinit();
+        var reversed_report = Report.empty;
+        defer reversed_report.deinit(allocator);
 
         var ix: usize = report.items.len;
         while (ix > 0) {
             ix -= 1;
 
-            try reversed_report.append(report.items[ix]);
+            try reversed_report.append(allocator, report.items[ix]);
         }
 
         result += try extendReport(allocator, reversed_report);
@@ -124,12 +123,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

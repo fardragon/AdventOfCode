@@ -33,10 +33,10 @@ fn parseRegister(input: []const u8) !RegisterType {
 
 fn parseProgram(allocator: std.mem.Allocator, input: []const u8) !struct { std.ArrayList(Instruction), std.ArrayList(u8) } {
     if (std.mem.indexOf(u8, input, "Program: ")) |_| {
-        var instructions = std.ArrayList(Instruction).init(allocator);
-        errdefer instructions.deinit();
-        const numbers = try common.parsing.parseNumbers(u8, allocator, input[9..], ',');
-        errdefer numbers.deinit();
+        var instructions = std.ArrayList(Instruction).empty;
+        errdefer instructions.deinit(allocator);
+        var numbers = try common.parsing.parseNumbers(u8, allocator, input[9..], ',');
+        errdefer numbers.deinit(allocator);
         if (numbers.items.len % 2 != 0) return error.MalformedInput;
 
         var ix: usize = 0;
@@ -52,7 +52,7 @@ fn parseProgram(allocator: std.mem.Allocator, input: []const u8) !struct { std.A
                 7 => .cdv,
                 else => return error.InvalidOpCode,
             };
-            try instructions.append(Instruction{
+            try instructions.append(allocator, Instruction{
                 .opcode = opcode,
                 .operand = numbers.items[ix + 1],
             });
@@ -93,8 +93,8 @@ fn runProgram(allocator: std.mem.Allocator, initial_registers: Registers, instru
     var registers = initial_registers;
     var instruction_pointer: usize = 0;
 
-    var output = std.ArrayList(u8).init(allocator);
-    errdefer output.deinit();
+    var output = std.ArrayList(u8).empty;
+    errdefer output.deinit(allocator);
 
     while (instruction_pointer < instructions.len) {
         const current_instruction = instructions[instruction_pointer];
@@ -119,7 +119,7 @@ fn runProgram(allocator: std.mem.Allocator, initial_registers: Registers, instru
             },
             .out => {
                 const operand = try getComboOperand(registers, current_instruction.operand);
-                try output.append(@truncate(@mod(operand, 8)));
+                try output.append(allocator, @truncate(@mod(operand, 8)));
             },
             .bdv => {
                 registers.B = try division(registers, current_instruction.operand);
@@ -146,24 +146,24 @@ fn calculateResult(output: []const u8) u64 {
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     const registers, const program = try parseInput(allocator, input);
-    const instructions, const raw_program = program;
+    var instructions, var raw_program = program;
     defer {
-        instructions.deinit();
-        raw_program.deinit();
+        instructions.deinit(allocator);
+        raw_program.deinit(allocator);
     }
 
-    const output = try runProgram(allocator, registers, instructions.items);
-    defer output.deinit();
+    var output = try runProgram(allocator, registers, instructions.items);
+    defer output.deinit(allocator);
 
     return calculateResult(output.items);
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     const registers, const program = try parseInput(allocator, input);
-    const instructions, const raw_program = program;
+    var instructions, var raw_program = program;
     defer {
-        instructions.deinit();
-        raw_program.deinit();
+        instructions.deinit(allocator);
+        raw_program.deinit(allocator);
     }
 
     const QueueState = struct {
@@ -186,7 +186,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         const current_state = queue.remove();
         for (0..8) |current_candidate| {
             const candidate = (current_state.value << 3) + current_candidate;
-            const result = try runProgram(
+            var result = try runProgram(
                 allocator,
                 Registers{
                     .A = candidate,
@@ -195,7 +195,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
                 },
                 instructions.items,
             );
-            defer result.deinit();
+            defer result.deinit(allocator);
 
             if (std.mem.eql(u8, result.items, raw_program.items[current_state.offset..])) {
                 if (current_state.offset == 0) return candidate;
@@ -216,12 +216,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

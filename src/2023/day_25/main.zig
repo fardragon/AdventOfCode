@@ -6,8 +6,8 @@ const Node = struct {
     name: []const u8,
     connections: std.ArrayList([]const u8),
 
-    fn deinit(self: *Node) void {
-        self.connections.deinit();
+    fn deinit(self: *Node, allocator: std.mem.Allocator) void {
+        self.connections.deinit(allocator);
     }
 };
 
@@ -17,35 +17,35 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Graph {
     var result = Graph.init(allocator);
     errdefer {
         for (result.values()) |*node| {
-            node.deinit();
+            node.deinit(allocator);
         }
         result.deinit();
     }
 
     for (input) |line| {
         const node_name = line[0..3];
-        var node_connections = std.ArrayList([]const u8).init(allocator);
-        errdefer node_connections.deinit();
+        var node_connections = std.ArrayList([]const u8).empty;
+        errdefer node_connections.deinit(allocator);
 
         var it = std.mem.splitScalar(u8, line[5..line.len], ' ');
         while (it.next()) |connection| {
-            try node_connections.append(connection);
+            try node_connections.append(allocator, connection);
 
             var reverse = try result.getOrPut(connection);
             if (reverse.found_existing) {
-                try reverse.value_ptr.connections.append(node_name);
+                try reverse.value_ptr.connections.append(allocator, node_name);
             } else {
                 reverse.value_ptr.name = connection;
-                reverse.value_ptr.connections = std.ArrayList([]const u8).init(allocator);
-                try reverse.value_ptr.connections.append(node_name);
+                reverse.value_ptr.connections = std.ArrayList([]const u8).empty;
+                try reverse.value_ptr.connections.append(allocator, node_name);
             }
         }
 
         const entry = try result.getOrPut(node_name);
 
         if (entry.found_existing) {
-            try entry.value_ptr.*.connections.appendSlice(node_connections.items);
-            node_connections.deinit();
+            try entry.value_ptr.*.connections.appendSlice(allocator, node_connections.items);
+            node_connections.deinit(allocator);
         } else {
             entry.value_ptr.* = Node{
                 .name = node_name,
@@ -148,7 +148,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var graph = try parseInput(allocator, input);
     defer {
         for (graph.values()) |*node| {
-            node.deinit();
+            node.deinit(allocator);
         }
         graph.deinit();
     }
@@ -171,12 +171,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

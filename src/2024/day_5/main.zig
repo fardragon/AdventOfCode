@@ -4,35 +4,38 @@ const common_input = common.input;
 const Rule = common.Pair(u8, u8);
 
 fn parseRules(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Rule) {
-    var rules = std.ArrayList(Rule).init(allocator);
-    errdefer rules.deinit();
+    var rules = std.ArrayList(Rule).empty;
+    errdefer rules.deinit(allocator);
 
     for (input) |line| {
         const sep = std.mem.indexOfScalar(u8, line, '|');
         if (sep == null) return error.MalformedInput;
 
-        try rules.append(Rule{
-            .first = try std.fmt.parseInt(u8, line[0..sep.?], 10),
-            .second = try std.fmt.parseInt(u8, line[sep.? + 1 ..], 10),
-        });
+        try rules.append(
+            allocator,
+            Rule{
+                .first = try std.fmt.parseInt(u8, line[0..sep.?], 10),
+                .second = try std.fmt.parseInt(u8, line[sep.? + 1 ..], 10),
+            },
+        );
     }
 
     return rules;
 }
 
 fn parseUpdates(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(std.ArrayList(u8)) {
-    var updates = std.ArrayList(std.ArrayList(u8)).init(allocator);
+    var updates = std.ArrayList(std.ArrayList(u8)).empty;
     errdefer {
-        for (updates.items) |update| {
-            update.deinit();
+        for (updates.items) |*update| {
+            update.deinit(allocator);
         }
-        updates.deinit();
+        updates.deinit(allocator);
     }
 
     for (input) |line| {
         var update = try common.parsing.parseNumbers(u8, allocator, line, ',');
-        errdefer update.deinit();
-        try updates.append(update);
+        errdefer update.deinit(allocator);
+        try updates.append(allocator, update);
     }
 
     return updates;
@@ -63,15 +66,15 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     }
     if (sep == null) return error.MalformedInput;
 
-    const rules = try parseRules(allocator, input[0..sep.?]);
-    defer rules.deinit();
+    var rules = try parseRules(allocator, input[0..sep.?]);
+    defer rules.deinit(allocator);
 
-    const updates = try parseUpdates(allocator, input[sep.? + 1 ..]);
+    var updates = try parseUpdates(allocator, input[sep.? + 1 ..]);
     defer {
-        for (updates.items) |update| {
-            update.deinit();
+        for (updates.items) |*update| {
+            update.deinit(allocator);
         }
-        updates.deinit();
+        updates.deinit(allocator);
     }
 
     var sum: u64 = 0;
@@ -104,15 +107,15 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     }
     if (sep == null) return error.MalformedInput;
 
-    const rules = try parseRules(allocator, input[0..sep.?]);
-    defer rules.deinit();
+    var rules = try parseRules(allocator, input[0..sep.?]);
+    defer rules.deinit(allocator);
 
-    const updates = try parseUpdates(allocator, input[sep.? + 1 ..]);
+    var updates = try parseUpdates(allocator, input[sep.? + 1 ..]);
     defer {
-        for (updates.items) |update| {
-            update.deinit();
+        for (updates.items) |*update| {
+            update.deinit(allocator);
         }
-        updates.deinit();
+        updates.deinit(allocator);
     }
 
     var sum: u64 = 0;
@@ -132,12 +135,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

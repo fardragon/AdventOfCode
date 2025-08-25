@@ -6,13 +6,13 @@ const Grid = common.grid.Grid(u8);
 fn parseGrid(allocator: std.mem.Allocator, input: []const []const u8) !Grid {
     const expected_width = input[0].len;
 
-    var data = Grid.Container.init(allocator);
-    errdefer data.deinit();
+    var data = Grid.Container.empty;
+    errdefer data.deinit(allocator);
 
     for (input) |line| {
         if (line.len != expected_width) return error.MalformedInput;
 
-        try data.appendSlice(line);
+        try data.appendSlice(allocator, line);
     }
 
     return Grid{
@@ -136,8 +136,8 @@ fn countCorners(grid: Grid, plots: common.AutoHashSet(isize)) u64 {
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const grid = try parseGrid(allocator, input);
-    defer grid.data.deinit();
+    var grid = try parseGrid(allocator, input);
+    defer grid.data.deinit(allocator);
 
     var visited_fields = common.AutoHashSet(isize).init(allocator);
     defer visited_fields.deinit();
@@ -158,8 +158,8 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const grid = try parseGrid(allocator, input);
-    defer grid.data.deinit();
+    var grid = try parseGrid(allocator, input);
+    defer grid.data.deinit(allocator);
 
     var visited_fields = common.AutoHashSet(isize).init(allocator);
     defer visited_fields.deinit();
@@ -186,12 +186,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

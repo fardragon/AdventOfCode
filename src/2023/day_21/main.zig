@@ -22,23 +22,23 @@ const Puzzle = struct {
         return y * self.width + x;
     }
 
-    fn deinit(self: *Puzzle) void {
-        self.grid.deinit();
+    fn deinit(self: *Puzzle, allocator: std.mem.Allocator) void {
+        self.grid.deinit(allocator);
     }
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !Puzzle {
     var result = Puzzle{
-        .grid = std.ArrayList(u8).init(allocator),
+        .grid = std.ArrayList(u8).empty,
         .width = input[0].len,
         .height = input.len,
         .starting_position = undefined,
     };
 
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
-        try result.grid.appendSlice(line);
+        try result.grid.appendSlice(allocator, line);
     }
 
     for (result.grid.items, 0..) |*field, ix| {
@@ -85,14 +85,14 @@ fn generateNeighbours(puzzle: Puzzle, position: usize) [4]?usize {
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, max_steps: u8) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     const QueueState = common.Pair(usize, u8);
 
-    var queue = std.ArrayList(QueueState).init(allocator);
-    defer queue.deinit();
+    var queue = std.ArrayList(QueueState).empty;
+    defer queue.deinit(allocator);
 
-    try queue.append(QueueState{ .first = puzzle.starting_position, .second = 0 });
+    try queue.append(allocator, QueueState{ .first = puzzle.starting_position, .second = 0 });
 
     var targets: u64 = 0;
 
@@ -115,7 +115,7 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8, max_steps
                 if (puzzle.grid.items[n] == '.') {
                     const new_state = QueueState{ .first = n, .second = steps + 1 };
                     if (!visited.contains(new_state)) {
-                        try queue.append(new_state);
+                        try queue.append(allocator, new_state);
                     }
                 }
             }
@@ -232,7 +232,7 @@ fn countPositions(allocator: std.mem.Allocator, big_positions: std.AutoArrayHash
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8, steps: u64) !u64 {
     var puzzle = try parseInput(allocator, input);
-    defer puzzle.deinit();
+    defer puzzle.deinit(allocator);
 
     var positions = try generatePositions(allocator, puzzle, steps);
     defer positions.deinit();
@@ -263,12 +263,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items, 64)});

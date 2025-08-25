@@ -18,24 +18,24 @@ const Pattern = struct {
         return y * self.columns + x;
     }
 
-    fn deinit(self: *Pattern) void {
-        self.map.deinit();
+    fn deinit(self: *Pattern, allocator: std.mem.Allocator) void {
+        self.map.deinit(allocator);
     }
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Pattern) {
-    var result = std.ArrayList(Pattern).init(allocator);
+    var result = std.ArrayList(Pattern).empty;
     errdefer {
         for (result.items) |*pattern| {
-            pattern.deinit();
+            pattern.deinit(allocator);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
 
     var current_pattern: ?Pattern = null;
     errdefer {
         if (current_pattern) |*pattern| {
-            pattern.deinit();
+            pattern.deinit(allocator);
         }
     }
 
@@ -43,26 +43,26 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Arra
         if (current_pattern) |*pattern| {
             if (line.len > 0) {
                 if (line.len != pattern.columns) unreachable;
-                try pattern.map.appendSlice(line);
+                try pattern.map.appendSlice(allocator, line);
                 pattern.rows += 1;
             } else {
-                try result.append(pattern.*);
+                try result.append(allocator, pattern.*);
                 current_pattern = null;
             }
         } else {
             if (line.len == 0) unreachable;
             current_pattern = Pattern{
-                .map = std.ArrayList(u8).init(allocator),
+                .map = std.ArrayList(u8).empty,
                 .columns = line.len,
                 .rows = 0,
             };
-            try current_pattern.?.map.appendSlice(line);
+            try current_pattern.?.map.appendSlice(allocator, line);
             current_pattern.?.rows += 1;
         }
     }
 
     // append last pattern
-    try result.append(current_pattern.?);
+    try result.append(allocator, current_pattern.?);
 
     return result;
 }
@@ -128,9 +128,9 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var patterns = try parseInput(allocator, input);
     defer {
         for (patterns.items) |*pattern| {
-            pattern.deinit();
+            pattern.deinit(allocator);
         }
-        patterns.deinit();
+        patterns.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -146,9 +146,9 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var patterns = try parseInput(allocator, input);
     defer {
         for (patterns.items) |*pattern| {
-            pattern.deinit();
+            pattern.deinit(allocator);
         }
-        patterns.deinit();
+        patterns.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -166,12 +166,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

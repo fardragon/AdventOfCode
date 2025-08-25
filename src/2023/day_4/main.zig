@@ -15,9 +15,9 @@ fn parseCard(allocator: std.mem.Allocator, input: []const u8) !Card {
     const winning_numbers = card_split.first();
     const numbers = card_split.next().?;
 
-    var winning_numbers_list = std.ArrayList(u8).init(allocator);
+    var winning_numbers_list = std.ArrayList(u8).empty;
     errdefer {
-        winning_numbers_list.deinit();
+        winning_numbers_list.deinit(allocator);
     }
 
     var winning_numbers_split = std.mem.splitScalar(u8, winning_numbers, ' ');
@@ -26,7 +26,7 @@ fn parseCard(allocator: std.mem.Allocator, input: []const u8) !Card {
         if (str.len == 0) continue;
 
         const parsed_number = try std.fmt.parseInt(u8, str, 10);
-        try winning_numbers_list.append(parsed_number);
+        try winning_numbers_list.append(allocator, parsed_number);
     }
 
     var numbers_set = std.AutoHashMap(u8, void).init(allocator);
@@ -50,36 +50,36 @@ fn parseCard(allocator: std.mem.Allocator, input: []const u8) !Card {
 }
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Card) {
-    var result = std.ArrayList(Card).init(allocator);
+    var result = std.ArrayList(Card).empty;
     errdefer {
         for (result.items) |*item| {
             item.numbers.deinit();
-            item.winning_numbers.deinit();
+            item.winning_numbers.deinit(allocator);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
 
     for (input) |card| {
         var c = try parseCard(allocator, card);
         errdefer {
             c.numbers.deinit();
-            c.winning_numbers.deinit();
+            c.winning_numbers.deinit(allocator);
         }
 
-        try result.append(c);
+        try result.append(allocator, c);
     }
 
     return result;
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const cards = try parseInput(allocator, input);
+    var cards = try parseInput(allocator, input);
     defer {
         for (cards.items) |*card| {
             card.numbers.deinit();
-            card.winning_numbers.deinit();
+            card.winning_numbers.deinit(allocator);
         }
-        cards.deinit();
+        cards.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -103,13 +103,13 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const cards = try parseInput(allocator, input);
+    var cards = try parseInput(allocator, input);
     defer {
         for (cards.items) |*card| {
             card.numbers.deinit();
-            card.winning_numbers.deinit();
+            card.winning_numbers.deinit(allocator);
         }
-        cards.deinit();
+        cards.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -138,12 +138,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

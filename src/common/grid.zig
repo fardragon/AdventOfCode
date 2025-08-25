@@ -52,9 +52,9 @@ pub fn Grid(comptime T: type) type {
             return self.height * self.width;
         }
 
-        pub fn clone(self: Self) !Self {
+        pub fn clone(self: Self, allocator: std.mem.Allocator) !Self {
             return Self{
-                .data = try self.data.clone(),
+                .data = try self.data.clone(allocator),
                 .width = self.width,
                 .height = self.height,
             };

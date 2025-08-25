@@ -31,10 +31,8 @@ const Position2D = struct {
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Brick) {
-    var bricks = std.ArrayList(Brick).init(allocator);
-    errdefer {
-        bricks.deinit();
-    }
+    var bricks = std.ArrayList(Brick).empty;
+    errdefer bricks.deinit(allocator);
 
     for (input) |line| {
         var it = std.mem.splitAny(u8, line, ",~");
@@ -46,7 +44,7 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.Arra
             ix += 1;
         }
 
-        try bricks.append(Brick.init(nums));
+        try bricks.append(allocator, Brick.init(nums));
     }
 
     return bricks;
@@ -70,10 +68,10 @@ fn crash(allocator: std.mem.Allocator, children_map: std.AutoArrayHashMap(usize,
 
     var result: u64 = 0;
 
-    var queue = std.ArrayList(usize).init(allocator);
-    defer queue.deinit();
+    var queue = std.ArrayList(usize).empty;
+    defer queue.deinit(allocator);
 
-    try queue.append(brick_index);
+    try queue.append(allocator, brick_index);
 
     while (queue.pop()) |ix| {
         result += 1;
@@ -82,7 +80,7 @@ fn crash(allocator: std.mem.Allocator, children_map: std.AutoArrayHashMap(usize,
                 const entry = deps.getPtr(c).?;
                 entry.* -= 1;
                 if (entry.* == 0) {
-                    try queue.append(c);
+                    try queue.append(allocator, c);
                 }
             }
         }
@@ -93,9 +91,7 @@ fn crash(allocator: std.mem.Allocator, children_map: std.AutoArrayHashMap(usize,
 
 fn solve(allocator: std.mem.Allocator, input: []const []const u8) !common.Pair(u64, u64) {
     var bricks = try parseInput(allocator, input);
-    defer {
-        bricks.deinit();
-    }
+    defer bricks.deinit(allocator);
 
     std.sort.heap(Brick, bricks.items, {}, Brick.sortByZ1);
 
@@ -199,12 +195,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

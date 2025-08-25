@@ -77,22 +77,22 @@ const GalaxyMap = struct {
         return result;
     }
 
-    fn deinit(self: *GalaxyMap) void {
-        self.map.deinit();
+    fn deinit(self: *GalaxyMap, allocator: std.mem.Allocator) void {
+        self.map.deinit(allocator);
     }
 };
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !GalaxyMap {
     var result = GalaxyMap{
-        .map = std.ArrayList(u8).init(allocator),
+        .map = std.ArrayList(u8).empty,
         .width = input[0].len,
         .height = input.len,
     };
 
-    errdefer result.deinit();
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
-        try result.map.appendSlice(line);
+        try result.map.appendSlice(allocator, line);
     }
 
     return result;
@@ -100,22 +100,25 @@ fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !GalaxyMa
 
 fn solve(allocator: std.mem.Allocator, input: []const []const u8, expansion_coefficient: u64) !u64 {
     var galaxy_map = try parseInput(allocator, input);
-    defer galaxy_map.deinit();
+    defer galaxy_map.deinit(allocator);
 
     var galaxies = try galaxy_map.getGalaxies(allocator);
     defer galaxies.deinit();
 
     // generate galaxy pairs
-    var pairs = std.ArrayList(GalaxyPair).init(allocator);
-    defer pairs.deinit();
+    var pairs = std.ArrayList(GalaxyPair).empty;
+    defer pairs.deinit(allocator);
 
     for (galaxies.keys(), 0..) |source_galaxy, source_galaxy_ix| {
         for (source_galaxy_ix..galaxies.keys().len) |target_galaxy_ix| {
             if (source_galaxy_ix == target_galaxy_ix) continue;
-            try pairs.append(GalaxyPair{
-                .first = source_galaxy,
-                .second = galaxies.keys()[target_galaxy_ix],
-            });
+            try pairs.append(
+                allocator,
+                GalaxyPair{
+                    .first = source_galaxy,
+                    .second = galaxies.keys()[target_galaxy_ix],
+                },
+            );
         }
     }
 
@@ -169,12 +172,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common.input.readFileInput(allocator, "input.txt");
+    var input = try common.input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solve(allocator, input.items, 2)});

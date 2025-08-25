@@ -44,19 +44,19 @@ fn parseKey(input: []const []const u8) !Key {
 }
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !struct { std.ArrayList(Lock), std.ArrayList(Key) } {
-    var locks = std.ArrayList(Lock).init(allocator);
-    errdefer locks.deinit();
+    var locks = std.ArrayList(Lock).empty;
+    errdefer locks.deinit(allocator);
 
-    var keys = std.ArrayList(Key).init(allocator);
-    errdefer keys.deinit();
+    var keys = std.ArrayList(Key).empty;
+    errdefer keys.deinit(allocator);
 
     var it: usize = 0;
 
     while (it < input.len) {
         if (input[it][0] == '#') {
-            try locks.append(try parseLock(input[it .. it + PartLength]));
+            try locks.append(allocator, try parseLock(input[it .. it + PartLength]));
         } else if (input[it][0] == '.') {
-            try keys.append(try parseKey(input[it .. it + PartLength]));
+            try keys.append(allocator, try parseKey(input[it .. it + PartLength]));
         } else return error.InvalidInput;
 
         it += (PartLength + 1);
@@ -73,10 +73,10 @@ fn validateLockKeyPair(lock: Lock, key: Key) bool {
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const locks, const keys = try parseInput(allocator, input);
+    var locks, var keys = try parseInput(allocator, input);
     defer {
-        locks.deinit();
-        keys.deinit();
+        locks.deinit(allocator);
+        keys.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -96,12 +96,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

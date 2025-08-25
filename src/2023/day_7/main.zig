@@ -136,19 +136,19 @@ fn parseCard(input: []const u8) !Hand {
 }
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Hand) {
-    var result = std.ArrayList(Hand).init(allocator);
-    errdefer result.deinit();
+    var result = std.ArrayList(Hand).empty;
+    errdefer result.deinit(allocator);
 
     for (input) |line| {
-        try result.append(try parseCard(line));
+        try result.append(allocator, try parseCard(line));
     }
 
     return result;
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const hands = try parseInput(allocator, input);
-    defer hands.deinit();
+    var hands = try parseInput(allocator, input);
+    defer hands.deinit(allocator);
 
     std.sort.heap(Hand, hands.items, false, Hand.lessThan);
 
@@ -161,8 +161,8 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const hands = try parseInput(allocator, input);
-    defer hands.deinit();
+    var hands = try parseInput(allocator, input);
+    defer hands.deinit(allocator);
 
     std.sort.heap(Hand, hands.items, true, Hand.lessThan);
 
@@ -180,12 +180,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

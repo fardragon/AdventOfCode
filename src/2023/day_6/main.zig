@@ -7,8 +7,8 @@ const Race = struct {
 };
 
 fn splitLine(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(u64) {
-    var results = std.ArrayList(u64).init(allocator);
-    errdefer results.deinit();
+    var results = std.ArrayList(u64).empty;
+    errdefer results.deinit(allocator);
 
     {
         var it = std.mem.splitScalar(u8, input, ':');
@@ -18,7 +18,7 @@ fn splitLine(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(u64
         while (times_split.next()) |time_str| {
             if (time_str.len == 0) continue;
             const parsed_time = try std.fmt.parseInt(u64, time_str, 10);
-            try results.append(parsed_time);
+            try results.append(allocator, parsed_time);
         }
     }
 
@@ -27,19 +27,22 @@ fn splitLine(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(u64
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Race) {
     var times = try splitLine(allocator, input[0]);
-    defer times.deinit();
+    defer times.deinit(allocator);
 
     var distances = try splitLine(allocator, input[1]);
-    defer distances.deinit();
+    defer distances.deinit(allocator);
 
-    var races = std.ArrayList(Race).init(allocator);
-    errdefer races.deinit();
+    var races = std.ArrayList(Race).empty;
+    errdefer races.deinit(allocator);
 
     for (times.items, distances.items) |time, distance| {
-        try races.append(Race{
-            .time = time,
-            .distance = distance,
-        });
+        try races.append(
+            allocator,
+            Race{
+                .time = time,
+                .distance = distance,
+            },
+        );
     }
 
     return races;
@@ -56,8 +59,8 @@ fn solveRace(race: Race) u64 {
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const races = try parseInput(allocator, input);
-    defer races.deinit();
+    var races = try parseInput(allocator, input);
+    defer races.deinit(allocator);
 
     var result: u64 = 1;
 
@@ -69,8 +72,8 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const races = try parseInput(allocator, input);
-    defer races.deinit();
+    var races = try parseInput(allocator, input);
+    defer races.deinit(allocator);
 
     var final_race = Race{
         .distance = 0,
@@ -95,12 +98,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

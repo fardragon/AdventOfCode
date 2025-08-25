@@ -2,12 +2,12 @@ const std = @import("std");
 const common_input = @import("common").input;
 
 fn parseLists(allocator: std.mem.Allocator, input: []const []const u8) !struct { std.ArrayList(i64), std.ArrayList(i64) } {
-    var left_list = std.ArrayList(i64).init(allocator);
-    var right_list = std.ArrayList(i64).init(allocator);
+    var left_list = std.ArrayList(i64).empty;
+    var right_list = std.ArrayList(i64).empty;
 
     errdefer {
-        left_list.deinit();
-        right_list.deinit();
+        left_list.deinit(allocator);
+        right_list.deinit(allocator);
     }
 
     for (input) |line| {
@@ -17,8 +17,8 @@ fn parseLists(allocator: std.mem.Allocator, input: []const []const u8) !struct {
         const left = try std.fmt.parseInt(i64, line[0..end_of_left], 10);
         const right = try std.fmt.parseInt(i64, line[start_of_right + 1 ..], 10);
 
-        try left_list.append(left);
-        try right_list.append(right);
+        try left_list.append(allocator, left);
+        try right_list.append(allocator, right);
     }
 
     return .{
@@ -30,11 +30,11 @@ fn parseLists(allocator: std.mem.Allocator, input: []const []const u8) !struct {
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var diff_score: u64 = 0;
 
-    const left_list, const right_list = try parseLists(allocator, input);
+    var left_list, var right_list = try parseLists(allocator, input);
 
     defer {
-        left_list.deinit();
-        right_list.deinit();
+        left_list.deinit(allocator);
+        right_list.deinit(allocator);
     }
 
     if (left_list.items.len != right_list.items.len) return error.InvalidInputLength;
@@ -54,11 +54,11 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     var similarity_score: u64 = 0;
 
-    const left_list, const right_list = try parseLists(allocator, input);
+    var left_list, var right_list = try parseLists(allocator, input);
 
     defer {
-        left_list.deinit();
-        right_list.deinit();
+        left_list.deinit(allocator);
+        right_list.deinit(allocator);
     }
 
     var histogram = std.AutoArrayHashMap(i64, i64).init(allocator);
@@ -91,12 +91,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

@@ -109,18 +109,18 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
     defer network.deinit();
 
     // find nodes ending with 'A'
-    var starting_nodes = std.ArrayList([3]u8).init(allocator);
-    defer starting_nodes.deinit();
+    var starting_nodes = std.ArrayList([3]u8).empty;
+    defer starting_nodes.deinit(allocator);
 
     var names_iterator = network.nodes.keyIterator();
     while (names_iterator.next()) |name| {
         if (name[2] == 'A') {
-            try starting_nodes.append(name.*);
+            try starting_nodes.append(allocator, name.*);
         }
     }
 
-    var partial_results = std.ArrayList(u64).init(allocator);
-    defer partial_results.deinit();
+    var partial_results = std.ArrayList(u64).empty;
+    defer partial_results.deinit(allocator);
     for (starting_nodes.items) |starting_node| {
         var result: u64 = 0;
         var instruction_pointer: usize = 0;
@@ -138,7 +138,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
             instruction_pointer = (instruction_pointer + 1) % network.instructions.len;
         }
 
-        try partial_results.append(result);
+        try partial_results.append(allocator, result);
     }
 
     return lcm_slice(partial_results.items);
@@ -150,12 +150,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

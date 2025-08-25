@@ -27,32 +27,32 @@ const Towel = struct {
 };
 
 fn parseTowels(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(Towel) {
-    var towels = std.ArrayList(Towel).init(allocator);
-    errdefer towels.deinit();
+    var towels = std.ArrayList(Towel).empty;
+    errdefer towels.deinit(allocator);
 
     var ix = std.mem.splitSequence(u8, input, ", ");
 
     while (ix.next()) |towel_str| {
-        try towels.append(try Towel.init(towel_str));
+        try towels.append(allocator, try Towel.init(towel_str));
     }
 
     return towels;
 }
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !struct { std.ArrayList(Towel), std.ArrayList(String) } {
-    const towels = try parseTowels(allocator, input[0]);
-    errdefer towels.deinit();
+    var towels = try parseTowels(allocator, input[0]);
+    errdefer towels.deinit(allocator);
 
-    var designs = std.ArrayList(String).init(allocator);
+    var designs = std.ArrayList(String).empty;
     errdefer {
         for (designs.items) |design| design.deinit();
-        designs.deinit();
+        designs.deinit(allocator);
     }
 
     for (input[2..]) |design| {
         const d = try String.init(allocator, design);
         errdefer d.deinit();
-        try designs.append(d);
+        try designs.append(allocator, d);
     }
 
     return .{
@@ -80,12 +80,12 @@ fn isDesignPossible(cache: *std.StringHashMap(u64), design: []const u8, towels: 
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const towels, const designs = try parseInput(allocator, input);
+    var towels, var designs = try parseInput(allocator, input);
     defer {
-        towels.deinit();
+        towels.deinit(allocator);
 
         for (designs.items) |design| design.deinit();
-        designs.deinit();
+        designs.deinit(allocator);
     }
 
     var designCache = std.StringHashMap(u64).init(allocator);
@@ -103,12 +103,12 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const towels, const designs = try parseInput(allocator, input);
+    var towels, var designs = try parseInput(allocator, input);
     defer {
-        towels.deinit();
+        towels.deinit(allocator);
 
         for (designs.items) |design| design.deinit();
-        designs.deinit();
+        designs.deinit(allocator);
     }
 
     var designCache = std.StringHashMap(u64).init(allocator);
@@ -128,12 +128,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

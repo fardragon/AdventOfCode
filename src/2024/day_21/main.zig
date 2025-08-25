@@ -75,10 +75,10 @@ fn getAllPermutations(allocator: std.mem.Allocator, string: []const u8) !std.Arr
     var permutations = try std.ArrayList(std.ArrayList(u8)).initCapacity(allocator, permutations_count);
 
     errdefer {
-        for (permutations.items) |permutation| {
-            permutation.deinit();
+        for (permutations.items) |*permutation| {
+            permutation.deinit(allocator);
         }
-        permutations.deinit();
+        permutations.deinit(allocator);
     }
 
     try permute(allocator, mutable_string, 0, &permutations);
@@ -124,39 +124,39 @@ fn solveRecursive(allocator: std.mem.Allocator, cache: *CacheType, sequence: []c
     for (sequence) |char| {
         const next_x, const next_y = if (depth == 0) try doorKeypad(char) else try robotKeypad(char);
 
-        var valid_paths = std.ArrayList(std.ArrayList(u8)).init(allocator);
+        var valid_paths = std.ArrayList(std.ArrayList(u8)).empty;
         defer {
-            for (valid_paths.items) |item| {
-                item.deinit();
+            for (valid_paths.items) |*item| {
+                item.deinit(allocator);
             }
-            valid_paths.deinit();
+            valid_paths.deinit(allocator);
         }
 
         if (current_x == next_x and current_y == next_y) {
-            try valid_paths.append(std.ArrayList(u8).init(allocator));
-            try valid_paths.items[0].append('A');
+            try valid_paths.append(allocator, std.ArrayList(u8).empty);
+            try valid_paths.items[0].append(allocator, 'A');
         } else {
             const dx, const dy = .{ next_x - current_x, next_y - current_y };
             var path_template = try std.ArrayList(u8).initCapacity(allocator, @abs(dx) + @abs(dy));
-            defer path_template.deinit();
+            defer path_template.deinit(allocator);
 
             if (dx > 0) path_template.appendNTimesAssumeCapacity('>', @abs(dx)) else path_template.appendNTimesAssumeCapacity('<', @abs(dx));
             if (dy > 0) path_template.appendNTimesAssumeCapacity('v', @abs(dy)) else path_template.appendNTimesAssumeCapacity('^', @abs(dy));
 
-            const all_path_permutations = try getAllPermutations(allocator, path_template.items);
+            var all_path_permutations = try getAllPermutations(allocator, path_template.items);
             defer {
-                for (all_path_permutations.items) |item| {
-                    item.deinit();
+                for (all_path_permutations.items) |*item| {
+                    item.deinit(allocator);
                 }
-                all_path_permutations.deinit();
+                all_path_permutations.deinit(allocator);
             }
 
             //validate paths
             for (all_path_permutations.items) |path| {
                 if (validate_path(.{ current_x, current_y }, depth, path.items)) {
-                    var valid_path = try path.clone();
-                    try valid_path.append('A');
-                    try valid_paths.append(valid_path);
+                    var valid_path = try path.clone(allocator);
+                    try valid_path.append(allocator, 'A');
+                    try valid_paths.append(allocator, valid_path);
                 }
             }
         }
@@ -220,12 +220,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});

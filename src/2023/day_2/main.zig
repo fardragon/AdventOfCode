@@ -22,9 +22,9 @@ fn parseGame(allocator: std.mem.Allocator, input: []const u8) !Game {
 
     var turns = std.mem.splitScalar(u8, it.next().?, ';');
 
-    var turns_list = std.ArrayList(Turn).init(allocator);
+    var turns_list = std.ArrayList(Turn).empty;
     errdefer {
-        turns_list.deinit();
+        turns_list.deinit(allocator);
     }
 
     while (turns.next()) |turn| {
@@ -49,7 +49,7 @@ fn parseGame(allocator: std.mem.Allocator, input: []const u8) !Game {
                 unreachable;
             }
         }
-        try turns_list.append(parsed_turn);
+        try turns_list.append(allocator, parsed_turn);
     }
 
     return Game{
@@ -59,33 +59,33 @@ fn parseGame(allocator: std.mem.Allocator, input: []const u8) !Game {
 }
 
 fn parseInput(allocator: std.mem.Allocator, input: []const []const u8) !std.ArrayList(Game) {
-    var result = std.ArrayList(Game).init(allocator);
+    var result = std.ArrayList(Game).empty;
     errdefer {
-        for (result.items) |item| {
-            item.turns.deinit();
+        for (result.items) |*item| {
+            item.turns.deinit(allocator);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
 
     for (input) |game| {
         var g = try parseGame(allocator, game);
         errdefer {
-            g.turns.deinit();
+            g.turns.deinit(allocator);
         }
 
-        try result.append(g);
+        try result.append(allocator, g);
     }
 
     return result;
 }
 
 fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const games = try parseInput(allocator, input);
+    var games = try parseInput(allocator, input);
     defer {
-        for (games.items) |game| {
-            game.turns.deinit();
+        for (games.items) |*game| {
+            game.turns.deinit(allocator);
         }
-        games.deinit();
+        games.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -103,12 +103,12 @@ fn solvePart1(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
-    const games = try parseInput(allocator, input);
+    var games = try parseInput(allocator, input);
     defer {
-        for (games.items) |game| {
-            game.turns.deinit();
+        for (games.items) |*game| {
+            game.turns.deinit(allocator);
         }
-        games.deinit();
+        games.deinit(allocator);
     }
 
     var result: u64 = 0;
@@ -144,12 +144,12 @@ pub fn main() !void {
 
     defer _ = GPA.deinit();
 
-    const input = try common_input.readFileInput(allocator, "input.txt");
+    var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
         for (input.items) |item| {
             allocator.free(item);
         }
-        input.deinit();
+        input.deinit(allocator);
     }
 
     std.debug.print("Part 1 solution: {d}\n", .{try solvePart1(allocator, input.items)});
@@ -159,9 +159,9 @@ pub fn main() !void {
 test "parse game test" {
     const test_input = "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue";
 
-    const result = try parseGame(std.testing.allocator, test_input);
+    var result = try parseGame(std.testing.allocator, test_input);
     defer {
-        result.turns.deinit();
+        result.turns.deinit(std.testing.allocator);
     }
 
     try std.testing.expectEqual(@as(u32, 2), result.id);
