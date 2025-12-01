@@ -117,4 +117,5 @@ pub fn build(b: *std.Build) void {
     buildYear(b, &target, &optimize, common_module, intcode_module, run_all_tests_step, check_step, 2019);
     buildYear(b, &target, &optimize, common_module, intcode_module, run_all_tests_step, check_step, 2023);
     buildYear(b, &target, &optimize, common_module, intcode_module, run_all_tests_step, check_step, 2024);
+    buildYear(b, &target, &optimize, common_module, intcode_module, run_all_tests_step, check_step, 2025);
 }

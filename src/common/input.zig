@@ -15,17 +15,11 @@ pub fn readFileInput(allocator: std.mem.Allocator, input_file_path: []const u8) 
         result.deinit(allocator);
     }
 
-    while (reader.interface.takeDelimiterExclusive('\n')) |line| {
+    while (try reader.interface.takeDelimiter('\n')) |line| {
         const result_line = try allocator.dupe(u8, line);
         errdefer allocator.free(result_line);
 
         try result.append(allocator, result_line);
-    } else |err| {
-        switch (err) {
-            error.EndOfStream => {},
-            else => return err,
-        }
     }
-
     return result;
 }
