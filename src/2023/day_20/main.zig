@@ -310,11 +310,11 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
 }
 
 pub fn main() !void {
-    var GPA = std.heap.GeneralPurposeAllocator(.{ .stack_trace_frames = 16, .verbose_log = false }){};
+    var gpa = std.heap.DebugAllocator(.{ .stack_trace_frames = 16, .verbose_log = false }){};
 
-    var allocator = GPA.allocator();
+    var allocator = gpa.allocator();
 
-    defer _ = GPA.deinit();
+    defer _ = gpa.deinit();
 
     var input = try common_input.readFileInput(allocator, "input.txt");
     defer {
