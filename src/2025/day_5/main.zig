@@ -10,7 +10,7 @@ const Range = struct {
     }
 
     fn canMerge(lhs: *const Range, rhs: *const Range) bool {
-        return lhs.right + 1 >= rhs.left and rhs.right + 1 >= lhs.left;
+        return lhs.right + 1 >= rhs.left;
     }
 
     fn count(self: *const Range) u64 {
@@ -88,11 +88,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         const current = &ranges.items[ix];
         const next = &ranges.items[ix + 1];
         if (Range.canMerge(current, next)) {
-            const new_range = Range{
-                .left = current.left,
-                .right = @max(current.right, next.right),
-            };
-            ranges.items[ix] = new_range;
+            current.*.right = @max(current.right, next.right);
             _ = ranges.orderedRemove(ix + 1);
         } else {
             ix += 1;
