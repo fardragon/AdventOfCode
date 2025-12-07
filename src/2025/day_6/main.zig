@@ -107,7 +107,7 @@ fn solvePart2(allocator: std.mem.Allocator, input: []const []const u8) !u64 {
         for (input[0 .. input.len - 1]) |line| {
             const c = line[ix];
             switch (c) {
-                ' ' => {},
+                ' ' => if (number != 0) break else {},
                 '0'...'9' => {
                     number = number * 10 + @as(u64, c - '0');
                 },

@@ -47,6 +47,10 @@ pub fn AutoHashSet(comptime K: type) type {
             return self.internal.remove(key);
         }
 
+        pub fn clearRetainingCapacity(self: *Self) void {
+            self.internal.clearRetainingCapacity();
+        }
+
         pub fn merge_from(self: *Self, other: Self) std.mem.Allocator.Error!void {
             var it = other.iterator();
 
